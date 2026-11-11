@@ -1,452 +1,230 @@
-# AGENT.md — ALLIWA MOBILINDO
+AGENTS.md — ALLIWA MOBILINDO
+Dokumen ini adalah catatan perkembangan dan panduan kerja untuk melanjutkan proyek website ALLIWA MOBILINDO. Pengguna menggunakan Visual Studio Code sebagai editor dan tidak menggunakan AI coding agent di dalam VS Code. Gunakan dokumen ini sebagai konteks saat sesi bantuan berikutnya.
+1. Ringkasan proyek
+- Nama proyek: ALLIWA MOBILINDO.
+- Tujuan: website katalog, informasi, dan pemasaran kendaraan showroom.
+- Arah desain: hitam/charcoal dengan aksen hijau #80D927, teks putih/abu-abu, foto kendaraan besar, layout minimalis dan responsif.
+- OS pengembangan: Windows.
+- Editor: Visual Studio Code.
+- Direktori lokal:
+  D:\001. ADAM PROJECT ANDROID\005. WEBSITE SHOWROOM\showroom-mobil
+- Repository GitHub: https://github.com/pmsadmikk/alliwa-mobilindo (branch main).
+- Website Cloudflare Pages: https://alliwa-mobilindo.pages.dev.
+2. Aturan kerja ketika melanjutkan proyek
+1. Baca AGENTS.md dan periksa kode aktual sebelum mengubah apa pun.
+2. Pertahankan struktur folder, desain, dan pola kode yang sudah ada.
+3. Jangan menulis ulang file atau mengganti arsitektur tanpa alasan teknis yang jelas.
+4. Kerjakan satu tahap kecil pada satu waktu.
+5. Sebutkan file yang akan diubah dan alasannya sebelum memberikan perubahan.
+6. Jangan menebak nama properti, fungsi, atau struktur data; periksa file terkait terlebih dahulu.
+7. Pengguna bukan programmer dan meminta file lengkap yang sudah diperbaiki, bukan instruksi mengedit potongan kode. Berikan file siap-ganti beserta nama dan lokasi penempatannya.
+8. Berikan panduan bertahap, satu tindakan pada satu waktu. Setelah pengujian, minta hasilnya sebelum lanjut.
+9. Jangan menghapus fitur yang sudah berjalan atau mengubah desain UI tanpa kebutuhan teknis.
+10. Gunakan bahasa Indonesia.
+11. Jangan meminta password, access token, service role key, atau isi file .env.
+12. Jangan menganggap perubahan lokal sudah ter-deploy ke Cloudflare Pages sebelum ada proses deployment dan verifikasi.
+3. Teknologi dan deployment
+- React 19.
+- Vite 8.3.6.
+- Supabase JavaScript client @supabase/supabase-js 2.119.0.
+- React Router 7.
+- Tailwind CSS 4.
+- lucide-react.
+- Linter: Oxlint.
+- Perintah proyek: npm run dev, npm run build, npm run lint, npm run preview.
+- Cloudflare Pages project: alliwa-mobilindo.
+- Variabel environment di Cloudflare Pages sudah dikonfigurasi: VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY.
+- Supabase project ref: lzhriaodolgifdhniqlm.
+- Supabase Dashboard: https://supabase.com/dashboard/project/lzhriaodolgifdhniqlm.
+Jangan mencantumkan nilai rahasia environment variable dalam dokumentasi, chat, atau source control.
+4. Struktur kode yang diketahui
+Struktur berikut berdasarkan file yang sudah diperiksa; selalu pastikan kembali dengan project lokal bila ada perubahan:
+showroom-mobil/
+├── src/
+│   ├── components/
+│   │   └── VehicleImageUploader.jsx
+│   ├── context/
+│   │   ├── AuthContext.jsx
+│   │   └── VehicleContext.jsx
+│   ├── data/
+│   │   └── vehicles.js
+│   ├── lib/
+│   │   └── supabase.js
+│   ├── pages/
+│   │   └── AdminDashboard.jsx
+│   ├── HomePage.jsx
+│   ├── App.jsx
+│   ├── index.css
+│   └── main.jsx
+├── AGENTS.md
+├── package.json
+└── index.html
+5. Backend dan database Supabase
+Tabel vehicles
+Kolom yang sudah diperiksa:
+- id — bigint/int8, primary key.
+- name — text, wajib.
+- brand — text, wajib.
+- category — text.
+- year — integer.
+- transmission — text.
+- mileage — text.
+- price — bigint, wajib, default 0.
+- image — text, URL foto utama.
+- images — jsonb, array URL galeri, default [].
+- featured — boolean, default false.
+- status — text, wajib, default Available.
+- fuel — text.
+- description — text.
+- created_at dan updated_at — timestamptz.
+Storage bucket vehicle-images
+- Bucket sudah dibuat dan bersifat public.
+- Batas file: 5 MB per file.
+- MIME type yang diizinkan: image/jpeg, image/png, image/webp.
+- File foto disimpan di folder vehicles/.
+- URL foto publik disimpan ke kolom image dan images pada tabel vehicles.
+RLS / policies yang telah diperiksa
+Policies pada storage.objects yang sudah ada:
+- Admin can delete vehicle images — DELETE.
+- Admin can update vehicle images — UPDATE.
+- Admin can upload vehicle images — INSERT.
+- Admin can view vehicle images — SELECT.
+Policy memakai pemeriksaan role dari auth.jwt() -> 'app_metadata' ->> 'role' = 'admin'. Hasil query pg_policies menunjukkan keempat policy sudah ada dengan kondisi bucket vehicle-images dan role authenticated.
 
-Dokumen ini merupakan catatan utama project sekaligus panduan bagi AI Agent yang melanjutkan pengembangan website ALLIWA MOBILINDO.
+Policies tabel vehicles yang telah dilaporkan:
+- Admin can delete vehicles.
+- Admin can insert vehicles.
+- Admin can update vehicles.
+- Public can view vehicles.
+Jangan mengubah policies atau schema tanpa bukti baru yang menunjukkan bahwa perubahan diperlukan.
+6. Fitur yang sudah tersedia
+Website publik
+- Halaman katalog kendaraan.
+- Pencarian dan filter kategori.
+- Halaman detail kendaraan.
+- Galeri foto di halaman detail dengan pemilihan thumbnail.
+- Informasi harga dan spesifikasi.
+- Status kendaraan: Available, Reserved, Sold.
+- Tombol WhatsApp pada halaman detail.
+- Data kendaraan dibaca melalui VehicleContext dari Supabase.
+Dashboard Admin
+Fitur yang telah dibuat dan diuji sebelumnya:
+- Login admin.
+- Menampilkan ringkasan total kendaraan dan jumlah berdasarkan status.
+- Pencarian kendaraan.
+- Tambah kendaraan.
+- Edit kendaraan.
+- Hapus data kendaraan.
+- Mengubah status kendaraan.
+- Upload foto kendaraan tunggal maupun banyak.
+Upload foto massal — src/components/VehicleImageUploader.jsx
+Komponen uploader yang dibuat memiliki ketentuan implementasi berikut:
+- Memilih beberapa foto dari galeri/perangkat.
+- Format sumber JPEG, PNG, dan WebP.
+- Konversi ke WebP melalui browser canvas.
+- Maksimum sisi gambar 1920 px.
+- Kualitas WebP sekitar 82%.
+- Batas ukuran hasil 5 MB per foto agar sesuai bucket.
+- Maksimum 20 foto.
+- Preview, hapus dari daftar pilihan, ubah urutan, dan pilih foto utama dengan menempatkan foto di urutan pertama.
+- Komponen dipanggil dari AdminDashboard melalui props images, onChange, dan disabled.
+7. Status pekerjaan — 11 November 2026
+Yang telah dikonfirmasi berhasil
+1. Website publik, halaman admin, login, dan fungsi CRUD utama sudah berjalan.
+2. Upload foto kendaraan telah berhasil.
+3. Penambahan beberapa foto dan pemanggilan uploader di form Admin sudah diterapkan.
+4. Build Vite sebelumnya berhasil:
+vite v8.3.6 building client environment for production...
+✓ 2118 modules transformed.
+✓ built in 211ms
+Build tersebut menampilkan peringatan ukuran chunk JavaScript lebih dari 500 kB, tetapi bukan error build.
+Masalah penghapusan file Storage yang belum selesai
+Gejala yang diamati:
+- Update baris tabel vehicles berhasil (request PATCH 204 No Content).
+- Request Storage DELETE ke /storage/v1/object/vehicle-images terlihat mendapat status 200 OK dan payload berisi prefixes path file.
+- Namun objek masih tampil di Storage dan URL publiknya masih bisa dibuka.
+- Menghapus objek yang sama secara manual dari Supabase Dashboard berhasil.
+Pemeriksaan yang sudah dilakukan:
+- Request DELETE memiliki header Authorization, apikey, dan Content-Type.
+- Token sesi yang diperiksa memiliki klaim app_metadata.role = admin.
+- Keempat policy Storage di atas sudah ada dan kondisinya terlihat sesuai saat diperiksa melalui pg_policies.
+- Penghapusan manual dari dashboard Supabase berhasil.
+Kesimpulan: akar masalah penghapusan melalui aplikasi belum ditemukan. Jangan menyatakan sudah diperbaiki. Jangan mengubah policy/schema hanya berdasarkan dugaan. Jangan pernah meminta pengguna menyalin token atau key ke chat. Token yang pernah tidak sengaja dibagikan sebaiknya direvoke/akhiri sesinya dan pengguna login kembali.
+8. Mode sementara: upload boleh, penghapusan Storage dinonaktifkan
+Untuk melanjutkan pekerjaan website tanpa menunggu penyelesaian masalah DELETE, AdminDashboard.jsx disiapkan dalam mode sementara.
 
-**Terakhir diperbarui:** 7 November 2026
-
----
-
-## 1. Identitas Project
-
-**Nama usaha:** ALLIWA MOBILINDO  
-**Jenis usaha:** Showroom mobil bekas  
-**Jenis website:** Digital showroom dan katalog penjualan mobil bekas.
-
-**Tagline:**
-"Temukan Mobil Impian Anda Bersama ALLIWA."
-
-### Identitas visual
-
-- Charcoal: `#111111`
-- Dark: `#242424`
-- Lime Green: `#80D927`
-- Deep Green: `#5FA91C`
-- White: `#FFFFFF`
-
-Desain website menggunakan pendekatan modern, premium, minimalis, dan profesional.
-
----
-
-## 2. Tujuan Website
-
-Website dikembangkan sebagai sarana pemasaran digital sekaligus sistem pengelolaan inventaris kendaraan showroom.
-
-Fitur utama yang ditargetkan:
-
-1. Halaman utama dan katalog kendaraan.
-2. Pencarian dan filter kendaraan.
-3. Halaman detail setiap kendaraan.
-4. Galeri foto kendaraan.
-5. Tombol konsultasi melalui WhatsApp.
-6. Profil dan informasi showroom.
-7. Dashboard administrator.
-8. Login administrator.
-9. Tambah, edit, dan hapus kendaraan.
-10. Pengelolaan status kendaraan.
-11. Upload foto kendaraan.
-12. Integrasi media sosial.
-13. Fitur pembuatan caption untuk pemasaran Instagram.
-14. Optimasi SEO dan performa website.
-
----
-
-## 3. Teknologi yang Digunakan
-
-| Teknologi | Fungsi |
-|---|---|
-| React | Frontend |
-| Vite | Development server dan build |
-| Tailwind CSS | Styling |
-| JavaScript | Bahasa pemrograman |
-| React Router DOM | Routing |
-| Lucide React | Ikon |
-| Supabase | Backend dan database |
-| Supabase Auth | Autentikasi administrator |
-| Supabase Storage | Penyimpanan foto kendaraan |
-
-### Lingkungan pengembangan
-
-- Sistem operasi: Windows
-- Editor: Visual Studio Code
-- Node.js: v26.13.0
-- npm: v11.20.0
-- Vite: v8.3.6
-
-### Menjalankan project
-
-```powershell
+Perilaku yang dimaksud:
+- Upload foto baru ke bucket vehicle-images tetap berjalan.
+- Data image dan images tetap disimpan ke tabel vehicles.
+- Ketika foto dikeluarkan dari galeri saat edit, URL foto itu dikeluarkan dari data kendaraan, tetapi objek fisiknya tetap ada di Storage.
+- Ketika data kendaraan dihapus, hanya baris vehicles yang dihapus. File fisik foto tetap ada di Storage.
+- Jika upload sebagian berhasil tetapi proses upload berikutnya atau penyimpanan database gagal, file yang sudah sempat diunggah mungkin tertinggal di Storage. Ini konsekuensi sementara karena semua pemanggilan .remove() sengaja dinonaktifkan.
+- Jangan menjalankan pembersihan massal Storage secara manual sebelum daftar file dan referensi database diperiksa.
+Mode ini hanya solusi sementara, bukan perbaikan masalah DELETE.
+9. Langkah pengujian setelah mengganti AdminDashboard.jsx
+Jalankan dari PowerShell:
+cd "D:\001. ADAM PROJECT ANDROID\005. WEBSITE SHOWROOM\showroom-mobil"
+npm run build
+npm run dev
+Uji di website lokal:
+1. Tambahkan satu kendaraan uji dengan minimal dua foto.
+2. Pastikan upload selesai, data kendaraan tersimpan, dan dua foto terlihat di katalog/halaman detail.
+3. Edit kendaraan uji, keluarkan satu foto dari galeri, lalu simpan. Pastikan foto itu tidak lagi tampil pada kendaraan tetapi objeknya masih ada di Storage.
+4. Hapus kendaraan uji. Pastikan baris kendaraan hilang dari website/database dan file foto masih tersimpan di Storage.
+5. Periksa tambah, edit, hapus data, dan ubah status tetap berjalan.
+Jangan deploy ke produksi sebelum build dan pengujian lokal dikonfirmasi berhasil.
+10. Pekerjaan berikutnya
+Prioritas saat melanjutkan:
+1. Pastikan file AdminDashboard.jsx mode sementara sudah diganti di project lokal.
+2. Jalankan npm run build dan uji upload massal serta CRUD di lokal.
+3. Jika lolos, commit/push ke GitHub dan verifikasi deployment Cloudflare Pages sesuai kebutuhan.
+4. Pada sesi terpisah, lanjutkan diagnosis penghapusan Storage .remove() berdasarkan kode aktual, response body/headers, dan hasil pengujian yang dapat direproduksi.
+5. Setelah masalah DELETE diperbaiki, rancang prosedur pembersihan file Storage yang tertinggal dengan aman. Periksa referensi URL pada semua kendaraan sebelum menghapus objek.
+6. Lanjutkan fitur website lain hanya setelah tahap aktif dikonfirmasi pengguna.
+11. Menjalankan proyek
+Dari terminal PowerShell:
 cd "D:\001. ADAM PROJECT ANDROID\005. WEBSITE SHOWROOM\showroom-mobil"
 npm run dev
-```
-
-Alamat lokal:
-
-`http://localhost:5173/`
-
----
-
-## 4. Struktur Project
-
-```text
-showroom-mobil/
-│
-├── AGENT.md
-├── .env.local
-├── .gitignore
-├── package.json
-│
-└── src/
-    ├── context/
-    │   ├── VehicleContext.jsx
-    │   └── AuthContext.jsx
-    │
-    ├── lib/
-    │   └── supabase.js
-    │
-    ├── pages/
-    │   ├── AdminDashboard.jsx
-    │   ├── AdminLogin.jsx
-    │   └── VehicleDetail.jsx
-    │
-    ├── data/
-    │   └── vehicles.js
-    │
-    ├── App.jsx
-    ├── HomePage.jsx
-    ├── index.css
-    └── main.jsx
-```
-
-Struktur dapat berkembang sesuai kebutuhan. Jangan menghapus file atau mengubah arsitektur tanpa alasan teknis yang jelas.
-
----
-
-## 5. Integrasi Supabase
-
-Project sudah terhubung dengan Supabase.
-
-### Konfigurasi
-
-Project URL:
-
-`https://lzhriaodolgifdhniqlm.supabase.co`
-
-File konfigurasi:
-
-`src/lib/supabase.js`
-
-```javascript
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
-```
-
-Environment variables disimpan di `.env.local`:
-
-```env
-VITE_SUPABASE_URL=https://lzhriaodolgifdhniqlm.supabase.co
-VITE_SUPABASE_ANON_KEY=KEY_PUBLISHABLE_ANDA
-```
-
-Jangan pernah menampilkan atau meminta `service_role` key untuk frontend.
-
-Pastikan `.env.local` masuk dalam `.gitignore`.
-
-### Database
-
-Nama tabel:
-
-`public.vehicles`
-
-Kolom yang sudah dibuat:
-
-- id
-- name
-- brand
-- category
-- year
-- transmission
-- mileage
-- price
-- image
-- images
-- featured
-- status
-- fuel
-- description
-- created_at
-- updated_at
-
-Status kendaraan:
-
-- Available
-- Reserved
-- Sold
-
-Row Level Security (RLS) sudah diaktifkan.
-
-Kebijakan akses:
-
-- Pengunjung publik dapat membaca kendaraan.
-- Administrator dengan `app_metadata.role = admin` dapat menambah, mengubah, dan menghapus kendaraan.
-
-### Data awal
-
-Tiga kendaraan demo sudah berhasil dimasukkan ke database:
-
-1. Mercedes-Benz C200 — 2022.
-2. BMW 320i Sport — 2021.
-3. Toyota Alphard — 2023.
-
-Data tersebut sebelumnya berasal dari `src/data/vehicles.js`.
-
-### Supabase Storage
-
-Bucket yang sudah dibuat:
-
-`vehicle-images`
-
-Konfigurasi:
-
-- Public bucket: aktif.
-- Maksimal ukuran file: 5 MB.
-- MIME type: JPEG, PNG, WebP.
-- Upload, update, dan delete hanya untuk administrator.
-
-Bucket sudah memiliki kebijakan akses administrator.
-
----
-
-## 6. Autentikasi Administrator
-
-File:
-
-`src/context/AuthContext.jsx`
-
-`src/pages/AdminLogin.jsx`
-
-`src/App.jsx`
-
-`src/main.jsx`
-
-Autentikasi Supabase sudah berhasil diterapkan.
-
-Administrator menggunakan email dan password Supabase Auth.
-
-Role administrator diperiksa melalui:
-
-```javascript
-user?.app_metadata?.role === "admin"
-```
-
-Route `/admin` dilindungi menggunakan `ProtectedRoute`.
-
-Jika pengunjung belum login atau bukan administrator, akses diarahkan ke:
-
-`/admin/login`
-
-Fitur login, logout, dan proteksi route sudah diuji dan berjalan normal.
-
----
-
-## 7. Status Implementasi Saat Ini
-
-### Berhasil diterapkan
-
-| Fitur | Status |
-|---|---|
-| React + Vite | Selesai |
-| Tailwind CSS | Selesai |
-| Branding ALLIWA MOBILINDO | Selesai |
-| Homepage katalog | Selesai |
-| Pencarian kendaraan | Selesai |
-| Filter kategori | Selesai |
-| Halaman detail kendaraan | Selesai |
-| Galeri foto yang sudah tersedia | Selesai |
-| Navigasi React Router | Selesai |
-| Dashboard administrator | Selesai |
-| Statistik kendaraan | Selesai |
-| Login Supabase Auth | Selesai |
-| Logout administrator | Selesai |
-| Proteksi route administrator | Selesai |
-| Database Supabase | Selesai |
-| RLS database | Selesai |
-| Supabase Storage bucket | Selesai |
-| Pembacaan data kendaraan dari Supabase | Selesai |
-| Admin Dashboard terhubung dengan operasi CRUD Supabase | Kode sudah diterapkan, belum diuji |
-
-### Kondisi integrasi terbaru
-
-`src/context/VehicleContext.jsx` sudah membaca data langsung dari tabel Supabase menggunakan:
-
-```javascript
-supabase
-  .from("vehicles")
-  .select("*")
-  .order("id", { ascending: true });
-```
-
-Context menyediakan:
-
-- vehicles
-- setVehicles
-- loading
-- error
-- refreshVehicles
-
-Catatan: `setVehicles` masih merupakan perubahan state lokal, bukan operasi database. Jangan menggunakannya untuk menyimpan perubahan inventaris.
-
-`src/pages/AdminDashboard.jsx` sudah diperbarui agar menggunakan operasi database langsung:
-
-- `.insert()` untuk menambah kendaraan.
-- `.update()` untuk mengubah kendaraan.
-- `.delete()` untuk menghapus kendaraan.
-- `.update()` untuk mengubah status.
-- `refreshVehicles()` untuk memuat ulang data.
-
-**Semua operasi CRUD tersebut belum melewati pengujian langsung.**
-
----
-
-## 8. PEKERJAAN BERIKUTNYA — LANJUTKAN DARI SINI
-
-Jangan mengulang instalasi, konfigurasi Supabase, pembuatan tabel, atau setup autentikasi.
-
-Lanjutkan dari pengujian CRUD Admin Dashboard.
-
-### Tahap 1 — Uji tambah kendaraan
-
-Tambahkan kendaraan percobaan:
-
-- Nama: Honda Civic Test
-- Merek: Honda
-- Kategori: Sedan
-- Tahun: 2022
-- Transmisi: Automatic
-- Kilometer: 15.000 km
-- Harga: 350000000
-- Status: Available
-- URL foto: `https://placehold.co/800x500/png`
-
-Periksa apakah data muncul di:
-
-1. Admin Dashboard.
-2. Supabase Table Editor, tabel `vehicles`.
-3. Halaman utama website.
-
-Jangan menghapus data percobaan sebelum pengujian edit dan hapus selesai.
-
-### Tahap 2 — Uji edit kendaraan
-
-- Edit Honda Civic Test.
-- Ubah beberapa informasi.
-- Simpan perubahan.
-- Periksa apakah database ikut berubah.
-- Periksa halaman utama dan detail kendaraan.
-
-### Tahap 3 — Uji perubahan status
-
-Uji perubahan:
-
-- Available menjadi Reserved.
-- Reserved menjadi Sold.
-- Sold menjadi Available.
-
-Pastikan perubahan tersimpan di Supabase dan tercermin pada website.
-
-### Tahap 4 — Uji hapus kendaraan
-
-- Hapus Honda Civic Test.
-- Pastikan data terhapus dari database.
-- Pastikan kendaraan tidak muncul lagi di katalog.
-
-### Tahap 5 — Integrasi upload foto Supabase Storage
-
-Setelah CRUD berhasil:
-
-- Ganti input URL foto menjadi input file.
-- Upload foto ke bucket `vehicle-images`.
-- Tampilkan preview foto sebelum upload.
-- Simpan public URL ke kolom `image`.
-- Dukung beberapa foto kendaraan melalui kolom `images`.
-- Pertahankan kompatibilitas dengan data kendaraan lama.
-
-### Tahap 6 — Pengembangan fitur lanjutan
-
-Setelah backend kendaraan stabil:
-
-1. Galeri multi-foto kendaraan.
-2. Informasi lengkap dan spesifikasi kendaraan.
-3. Fitur unggulan / featured vehicles.
-4. Profil showroom.
-5. WhatsApp resmi showroom.
-6. Integrasi Google Maps.
-7. Informasi jam operasional.
-8. Link Instagram.
-9. Generator caption Instagram.
-10. Fitur berbagi foto dan informasi kendaraan.
-11. SEO dan optimasi performa.
-12. Deployment website ke domain resmi.
-
----
-
-## 9. Aturan Pengembangan untuk AI Agent
-
-1. Selalu periksa kode aktual sebelum mengubah file.
-2. Jangan menebak isi file yang belum diperiksa.
-3. Pertahankan fitur yang sudah berjalan.
-4. Jangan mengubah desain secara besar-besaran tanpa instruksi.
-5. Jangan mengganti teknologi atau arsitektur tanpa alasan teknis.
-6. Hindari duplikasi fungsi dan komponen.
-7. Gunakan Supabase sebagai sumber utama data kendaraan.
-8. Jangan menggunakan localStorage sebagai penyimpanan utama inventaris.
-9. Jangan menggunakan ID buatan frontend ketika menambahkan kendaraan. Biarkan Supabase menghasilkan ID otomatis.
-10. Tangani error dari setiap operasi database.
-11. Jangan menghapus data asli tanpa persetujuan pengguna.
-12. Jangan memasukkan secret key ke frontend.
-13. Periksa console browser dan terminal setelah perubahan.
-14. Utamakan kode yang aman, mudah dipelihara, dan konsisten.
-
-### Cara memberikan instruksi kepada pengguna
-
-Pengguna lebih nyaman dengan panduan bertahap.
-
-- Berikan satu tahap pekerjaan dalam satu waktu.
-- Sebutkan nama file dan lokasi secara jelas.
-- Untuk penggantian file, berikan kode lengkap yang siap ditempel.
-- Jangan memberikan terlalu banyak perubahan sekaligus.
-- Tunggu konfirmasi pengguna sebelum melanjutkan ke tahap berikutnya.
-- Jika ada error, minta pesan error aktual sebelum membuat perubahan lanjutan.
-
----
-
-## 10. Catatan Penting
-
-Beberapa informasi bisnis belum dikonfirmasi:
-
-- Logo final ALLIWA MOBILINDO.
-- Nomor WhatsApp resmi.
-- Alamat showroom.
-- Jam operasional.
-- Akun Instagram resmi.
-- Domain website.
-
-Jangan membuat informasi tersebut secara fiktif.
-
-Nomor WhatsApp yang pernah terdapat dalam kode lama harus diverifikasi sebelum website dipublikasikan.
-
----
-
-## INSTRUKSI TERAKHIR
-
-Saat melanjutkan project, baca dokumen ini terlebih dahulu.
-
-**Titik terakhir pekerjaan: menunggu pengujian fitur tambah kendaraan Honda Civic Test melalui Admin Dashboard dan verifikasi penyimpanannya di Supabase.**
-
-Jangan langsung mengerjakan upload foto atau fitur lain sebelum pengujian CRUD selesai.
+Buka URL lokal yang ditampilkan Vite, biasanya http://localhost:5173/.
+
+Perintah pemeriksaan lain:
+npm run build
+npm run lint
+Hentikan server dengan Ctrl + C.
+12. Prompt untuk sesi bantuan berikutnya
+Baca AGENTS.md di root project terlebih dahulu. Saya tidak mengedit potongan kode sendiri; berikan file lengkap siap-ganti. Proyek ALLIWA MOBILINDO saat ini memakai Supabase dan fitur upload foto massal WebP. Periksa kode aktual sebelum mengubah apa pun. Mode sementara upload aktif tetapi penghapusan objek Storage dinonaktifkan karena masalah .remove() belum ditemukan penyebabnya. Mulai dari verifikasi hasil pengujian lokal yang terakhir dan lanjutkan satu tahap kecil pada satu waktu. Jangan meminta token, password, service role key, atau isi .env.
+
+13. Update 11 November 2026 — build terbaru dan rencana deploy
+Pengguna telah mengganti src/pages/AdminDashboard.jsx dengan versi mode sementara (upload foto tetap aktif, penghapusan objek Storage dinonaktifkan), lalu menjalankan npm run build dari PowerShell pada project lokal.
+
+Hasil build terbaru:
+vite v8.3.6 building client environment for production...
+✓ 2118 modules transformed.
+dist/index.html                   0.46 kB │ gzip:   0.30 kB
+dist/assets/index-B6CzsCEO.css   32.56 kB │ gzip:   6.67 kB
+dist/assets/index-DWYzrHL7.js   528.68 kB │ gzip: 151.62 kB
+(!) Some chunks are larger than 500 kB after minification.
+✓ built in 6.48s
+Status: BUILD BERHASIL. Peringatan bundle JavaScript di atas 500 kB bersifat non-fatal dan tidak menggagalkan build.
+
+Pengguna ingin langsung deploy agar alliwamobilindo.com dapat menggunakan upload foto massal. Belum ada bukti bahwa runtime upload massal sudah diuji lagi setelah penggantian file, jadi jangan menyatakan fitur produksi telah terverifikasi sebelum pengujian pascadeploy.
+
+Informasi deployment yang sudah diketahui:
+- GitHub repository: https://github.com/pmsadmikk/alliwa-mobilindo
+- Branch: main
+- Cloudflare Pages project: alliwa-mobilindo
+- URL Pages: https://alliwa-mobilindo.pages.dev
+- Domain tujuan pengguna: alliwamobilindo.com
+- Environment variables Cloudflare Pages yang sudah pernah dikonfigurasi: VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY.
+Langkah deployment yang perlu dipandu:
+1. Di PowerShell, pastikan berada di root project.
+2. Periksa perubahan dengan git status.
+3. Stage dan commit perubahan yang relevan, misalnya git add AGENTS.md src/pages/AdminDashboard.jsx (sesuaikan bila AGENTS.md tidak dilacak atau nama/lokasi berbeda).
+4. Commit dengan pesan yang jelas, misalnya git commit -m "Temporarily disable storage image deletion".
+5. Push branch main dengan git push origin main.
+6. Tunggu deployment otomatis Cloudflare Pages selesai dan pastikan status deployment sukses.
+7. Buka https://alliwamobilindo.com, login admin, lalu uji upload lebih dari satu foto pada kendaraan uji.
+8. Pastikan foto baru tersimpan di Storage dan tampil di website. Ingat bahwa penghapusan foto dari Storage memang sengaja nonaktif untuk sementara.
+Jika git status menunjukkan file lain yang tidak dikenal atau perubahan sensitif, jangan stage semuanya dengan git add .; periksa satu per satu. Jangan pernah meminta atau mengirim .env, password, access token, atau service role key.
+
+Deployment langsung dilakukan atas pilihan pengguna meskipun pengujian runtime lokal pascapenggantian file belum dilaporkan. Sampaikan risiko ini secara ringkas dan lakukan verifikasi setelah deployment.

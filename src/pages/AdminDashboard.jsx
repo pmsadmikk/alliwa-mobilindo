@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { useVehicles } from "../context/VehicleContext";
 import { supabase } from "../lib/supabase";
 import { formatRupiah } from "../data/vehicles";
+import VehicleImageUploader from "../components/VehicleImageUploader";
 
 const emptyForm = {
   name: "",
@@ -42,6 +43,7 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [formImages, setFormImages] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -77,12 +79,15 @@ export default function AdminDashboard() {
     );
   });
 
+  // BUKA FORM TAMBAH KENDARAAN
   const openAddForm = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setFormImages([]);
     setShowForm(true);
   };
 
+  // BUKA FORM EDIT KENDARAAN
   const openEditForm = (car) => {
     setEditingId(car.id);
 
@@ -99,9 +104,26 @@ export default function AdminDashboard() {
       status: car.status || "Available",
     });
 
+    const currentImages =
+      Array.isArray(car.images) && car.images.length > 0
+        ? car.images
+        : car.image
+          ? [car.image]
+          : [];
+
+    setFormImages(
+      currentImages.map((url) => ({
+        id: crypto.randomUUID(),
+        file: null,
+        previewUrl: url,
+        existingUrl: url,
+      }))
+    );
+
     setShowForm(true);
   };
 
+  // PERUBAHAN INPUT FORM
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -117,29 +139,78 @@ export default function AdminDashboard() {
 
     if (isSaving) return;
 
+    if (formImages.length === 0) {
+      alert("Silakan pilih minimal satu foto kendaraan.");
+      return;
+    }
+
     setIsSaving(true);
 
-    const vehicleData = {
-      name: form.name.trim(),
-      brand: form.brand.trim(),
-      category: form.category,
-      year: Number(form.year),
-      transmission: form.transmission,
-      mileage: form.mileage.trim(),
-      price: Number(form.price),
-      image: form.image.trim(),
-      status: form.status,
-    };
-
     try {
+      const imageUrls = [];
+
+      // UPLOAD FOTO BARU KE SUPABASE STORAGE
+      for (const image of formImages) {
+        if (image.file) {
+          const filePath = `vehicles/${crypto.randomUUID()}.webp`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("vehicle-images")
+            .upload(filePath, image.file, {
+              contentType: "image/webp",
+              upsert: false,
+            });
+
+          if (uploadError) {
+            throw uploadError;
+          }
+
+          const { data } = supabase.storage
+            .from("vehicle-images")
+            .getPublicUrl(filePath);
+
+          imageUrls.push(data.publicUrl);
+        } else {
+          // PERTAHANKAN FOTO LAMA SAAT EDIT
+          const existingUrl =
+            image.existingUrl || image.previewUrl;
+
+          if (existingUrl) {
+            imageUrls.push(existingUrl);
+          }
+        }
+      }
+
+      if (imageUrls.length === 0) {
+        throw new Error(
+          "Tidak ada foto kendaraan yang berhasil disiapkan."
+        );
+      }
+
+      // DATA KENDARAAN UNTUK DATABASE
+      const vehicleData = {
+        name: form.name.trim(),
+        brand: form.brand.trim(),
+        category: form.category,
+        year: Number(form.year),
+        transmission: form.transmission,
+        mileage: form.mileage.trim(),
+        price: Number(form.price),
+        image: imageUrls[0],
+        images: imageUrls,
+        status: form.status,
+      };
+
       let result;
 
+      // UPDATE KENDARAAN
       if (editingId !== null) {
         result = await supabase
           .from("vehicles")
           .update(vehicleData)
           .eq("id", editingId);
       } else {
+        // TAMBAH KENDARAAN BARU
         result = await supabase
           .from("vehicles")
           .insert({
@@ -152,29 +223,42 @@ export default function AdminDashboard() {
         throw result.error;
       }
 
+      // PENGHAPUSAN FILE STORAGE DINONAKTIFKAN SEMENTARA.
+      // Jika foto dikeluarkan dari form edit, URL-nya tidak lagi disimpan
+      // di kolom image/images, tetapi file fisiknya tetap ada di Storage.
+
+      // PERBARUI DATA DASHBOARD
       await refreshVehicles();
 
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm);
+      setFormImages([]);
 
-      alert(
-        editingId !== null
-          ? "Data kendaraan berhasil diperbarui."
-          : "Kendaraan baru berhasil ditambahkan."
-      );
+      if (editingId !== null) {
+        alert(
+          "Data kendaraan berhasil diperbarui. Foto yang dikeluarkan dari galeri tetap tersimpan sementara di Supabase Storage."
+        );
+      } else {
+        alert("Kendaraan baru berhasil ditambahkan.");
+      }
     } catch (error) {
       console.error("Gagal menyimpan kendaraan:", error);
-      alert("Gagal menyimpan kendaraan: " + error.message);
+
+      alert(
+        "Gagal menyimpan kendaraan: " +
+          error.message +
+          "\n\nCatatan: foto yang sempat berhasil diunggah mungkin masih tersimpan di Supabase Storage."
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
-  // HAPUS KENDARAAN
+  // HAPUS DATA KENDARAAN. FILE STORAGE TIDAK DIHAPUS SEMENTARA.
   const deleteVehicle = async (id) => {
     const confirmed = window.confirm(
-      "Apakah Anda yakin ingin menghapus kendaraan ini?"
+      "Apakah Anda yakin ingin menghapus data kendaraan ini?\n\nUntuk sementara, foto fisik di Supabase Storage tidak ikut terhapus."
     );
 
     if (!confirmed || isProcessing) return;
@@ -182,6 +266,7 @@ export default function AdminDashboard() {
     setIsProcessing(true);
 
     try {
+      // Hapus data kendaraan dari database terlebih dahulu.
       const { error } = await supabase
         .from("vehicles")
         .delete()
@@ -193,7 +278,9 @@ export default function AdminDashboard() {
 
       await refreshVehicles();
 
-      alert("Kendaraan berhasil dihapus.");
+      alert(
+        "Data kendaraan berhasil dihapus dari website. File foto tetap tersimpan di Supabase Storage untuk sementara dan dapat dibersihkan manual nanti."
+      );
     } catch (error) {
       console.error("Gagal menghapus kendaraan:", error);
       alert("Gagal menghapus kendaraan: " + error.message);
@@ -514,6 +601,9 @@ export default function AdminDashboard() {
         <p className="mt-5 text-xs text-gray-600">
           ALLIWA MOBILINDO · Database terhubung dengan Supabase.
         </p>
+        <p className="mt-2 text-xs text-amber-500/80">
+          Catatan sementara: file foto yang dilepas dari galeri atau kendaraan yang dihapus belum dibersihkan otomatis dari Supabase Storage.
+        </p>
 
       </main>
 
@@ -539,7 +629,8 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => setShowForm(false)}
-                className="text-gray-400 transition hover:text-[#80D927]"
+                disabled={isSaving}
+                className="text-gray-400 transition hover:text-[#80D927] disabled:opacity-50"
               >
                 <X />
               </button>
@@ -657,29 +748,14 @@ export default function AdminDashboard() {
 
               </div>
 
-              <FormField label="URL Foto Utama Kendaraan">
-                <input
-                  required
-                  type="url"
-                  name="image"
-                  value={form.image}
-                  onChange={handleChange}
-                  placeholder="https://example.com/foto-mobil.jpg"
-                  className={inputClass}
-                />
-              </FormField>
+              {/* MULTIPLE VEHICLE IMAGE UPLOADER */}
+              <VehicleImageUploader
+                images={formImages}
+                onChange={setFormImages}
+                disabled={isSaving}
+              />
 
-              {form.image && (
-                <img
-                  src={form.image}
-                  alt="Preview kendaraan"
-                  className="h-44 w-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-
+              {/* FORM BUTTONS */}
               <div className="flex flex-wrap justify-end gap-3 border-t border-[#333] pt-5">
 
                 <button
@@ -710,6 +786,7 @@ export default function AdminDashboard() {
   );
 }
 
+// STATISTIC CARD
 function StatCard({ title, value, icon }) {
   return (
     <div className="border border-[#292929] bg-[#171717] p-5 transition hover:border-[#80D927]/40">
@@ -734,6 +811,7 @@ function StatCard({ title, value, icon }) {
   );
 }
 
+// FORM FIELD
 function FormField({ label, children }) {
   return (
     <label className="block">
