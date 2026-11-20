@@ -242,25 +242,33 @@ export default function HomePage() {
                     key={car.id}
                     className="group overflow-hidden bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
+                    
                     <div className="relative overflow-hidden">
-                      <img
-                        src={car.images?.[0] || car.image}
-                        alt={car.name}
-                        className="h-64 w-full object-cover transition duration-700 group-hover:scale-105"
-                      />
+                      <Link
+                        to={`/mobil/${car.id}`}
+                        aria-label={`Lihat detail ${car.name}`}
+                        className="block cursor-pointer"
+                      >
+                        <img
+                          src={car.images?.[0] || car.image}
+                          alt={car.name}
+                          className="h-64 w-full object-cover transition duration-700 group-hover:scale-105"
+                        />
+                      </Link>
 
-                      <span className="absolute left-5 top-5 bg-[#80D927] px-4 py-2 text-[9px] font-bold tracking-widest text-black">
+                      <span className="absolute left-5 top-5 bg-[#80D927] px-4 py-2 text-[9px] font-bold tracking-widest text-black pointer-events-none">
                         ALLIWA CHOICE
                       </span>
 
                       <span
-                        className={`absolute right-5 top-5 px-4 py-2 text-[9px] font-bold tracking-widest ${
-                          statusStyles[status] || statusStyles.Available
+                        className={`pointer-events-none absolute right-5 top-5 px-4 py-2 text-[9px] font-bold tracking-widest ${
+                        statusStyles[status] || statusStyles.Available
                         }`}
                       >
                         {statusLabels[status] || status.toUpperCase()}
                       </span>
                     </div>
+
 
                     <div className="p-6">
                       <p className="text-[10px] font-semibold tracking-widest text-[#5FA91C]">
