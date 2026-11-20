@@ -41,7 +41,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#111111] text-white">
-
       {/* ANNOUNCEMENT */}
       <div className="bg-[#80D927] px-4 py-2 text-center text-[10px] font-bold tracking-[0.15em] text-black sm:text-xs">
         ALLIWA MOBILINDO · TEMUKAN MOBIL IMPIAN ANDA
@@ -50,12 +49,10 @@ export default function HomePage() {
       {/* NAVBAR */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#111111]/95 backdrop-blur-md">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-12">
-
           <Link to="/" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center bg-[#80D927] text-black">
               <CarFront size={25} strokeWidth={2.5} />
             </div>
-
             <div>
               <span className="block text-lg font-extrabold tracking-[0.08em] text-white">
                 ALLIWA <span className="text-[#80D927]">MOBILINDO</span>
@@ -112,18 +109,15 @@ export default function HomePage() {
 
       {/* HERO */}
       <section className="relative flex min-h-[600px] items-center overflow-hidden lg:min-h-[700px]">
-
         <img
           src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=2000"
           alt="Pilihan mobil Alliwa Mobilindo"
           className="absolute inset-0 h-full w-full object-cover"
         />
-
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-transparent" />
 
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-24 lg:px-12">
-
           <p className="mb-7 text-[10px] font-semibold tracking-[0.35em] text-[#80D927] sm:text-xs">
             SELAMAT DATANG DI ALLIWA MOBILINDO
           </p>
@@ -186,17 +180,14 @@ export default function HomePage() {
       {/* CATALOG */}
       <section id="katalog" className="bg-[#F5F5F2] px-6 py-20 text-[#171717] lg:px-12 lg:py-28">
         <div className="mx-auto max-w-7xl">
-
           <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
               <p className="mb-4 text-[10px] font-bold tracking-[0.35em] text-[#5FA91C]">
                 KOLEKSI ALLIWA MOBILINDO
               </p>
-
               <h2 className="text-4xl font-light sm:text-5xl">
                 Temukan <span className="font-extrabold">Mobil Pilihan Anda.</span>
               </h2>
-
               <p className="mt-4 max-w-lg text-sm leading-6 text-gray-500">
                 Lihat pilihan kendaraan yang tersedia dan temukan
                 mobil yang sesuai dengan kebutuhan Anda.
@@ -242,33 +233,32 @@ export default function HomePage() {
                     key={car.id}
                     className="group overflow-hidden bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-                    
+                    {/* CLICKABLE VEHICLE IMAGE */}
                     <div className="relative overflow-hidden">
                       <Link
                         to={`/mobil/${car.id}`}
                         aria-label={`Lihat detail ${car.name}`}
-                        className="block cursor-pointer"
+                        className="relative block cursor-pointer"
                       >
                         <img
                           src={car.images?.[0] || car.image}
                           alt={car.name}
                           className="h-64 w-full object-cover transition duration-700 group-hover:scale-105"
                         />
+
+                        <span className="pointer-events-none absolute left-5 top-5 bg-[#80D927] px-4 py-2 text-[9px] font-bold tracking-widest text-black">
+                          ALLIWA CHOICE
+                        </span>
+
+                        <span
+                          className={`pointer-events-none absolute right-5 top-5 px-4 py-2 text-[9px] font-bold tracking-widest ${
+                            statusStyles[status] || statusStyles.Available
+                          }`}
+                        >
+                          {statusLabels[status] || status.toUpperCase()}
+                        </span>
                       </Link>
-
-                      <span className="absolute left-5 top-5 bg-[#80D927] px-4 py-2 text-[9px] font-bold tracking-widest text-black pointer-events-none">
-                        ALLIWA CHOICE
-                      </span>
-
-                      <span
-                        className={`pointer-events-none absolute right-5 top-5 px-4 py-2 text-[9px] font-bold tracking-widest ${
-                        statusStyles[status] || statusStyles.Available
-                        }`}
-                      >
-                        {statusLabels[status] || status.toUpperCase()}
-                      </span>
                     </div>
-
 
                     <div className="p-6">
                       <p className="text-[10px] font-semibold tracking-widest text-[#5FA91C]">
@@ -294,6 +284,7 @@ export default function HomePage() {
                           </p>
                         </div>
 
+                        {/* DETAIL BUTTON */}
                         <Link
                           to={`/mobil/${car.id}`}
                           className="flex items-center gap-2 bg-[#171717] px-5 py-3 text-[10px] font-bold tracking-widest text-white transition hover:bg-[#80D927] hover:text-black"
@@ -338,14 +329,12 @@ export default function HomePage() {
       {/* ABOUT */}
       <section id="tentang" className="bg-[#111111] px-6 py-24 lg:px-12">
         <div className="mx-auto grid max-w-7xl items-center gap-14 md:grid-cols-2">
-
           <div className="relative">
             <img
               src="https://images.unsplash.com/photo-1489824904134-891ab64532f1?w=1200"
               alt="Kendaraan pilihan Alliwa Mobilindo"
               className="h-[400px] w-full object-cover md:h-[520px]"
             />
-
             <div className="absolute -bottom-5 -right-4 border border-[#80D927] bg-[#171717] p-6 md:-right-5">
               <p className="text-xs font-bold tracking-widest text-[#80D927]">
                 ALLIWA
@@ -424,7 +413,6 @@ export default function HomePage() {
       {/* FOOTER */}
       <footer id="kontak" className="bg-[#111111] px-6 py-14 lg:px-12">
         <div className="mx-auto grid max-w-7xl gap-12 md:grid-cols-3">
-
           <div>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center bg-[#80D927] text-black">
@@ -446,7 +434,6 @@ export default function HomePage() {
             <h3 className="text-xs font-bold tracking-widest text-[#80D927]">
               MENU
             </h3>
-
             <div className="mt-6 space-y-4 text-xs text-gray-400">
               <a href="#" className="block transition hover:text-[#80D927]">Beranda</a>
               <a href="#katalog" className="block transition hover:text-[#80D927]">Katalog Kendaraan</a>
