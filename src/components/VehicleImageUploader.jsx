@@ -1,4 +1,3 @@
-
 import { useRef, useState } from "react";
 import {
   ImagePlus,
@@ -10,77 +9,103 @@ import {
 } from "lucide-react";
 
 const MAX_IMAGES = 20;
-const MAX_DIMENSION = 1920;
+const MAX_DIMENSION = 2560;
 const MAX_OUTPUT_SIZE = 5 * 1024 * 1024;
-const WEBP_QUALITY = 0.82;
+const QUALITY_LEVELS = [0.88, 0.82, 0.76];
+const DIMENSION_LEVELS = [2560, 2304, 2048, 1920, 1792, 1600];
 
 const createId = () => crypto.randomUUID();
 
+function canvasToWebP(canvas, quality) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error("Browser gagal mengonversi gambar ke WebP."));
+        }
+      },
+      "image/webp",
+      quality
+    );
+  });
+}
+
 async function convertToWebP(file) {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-  ];
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
 
   if (!allowedTypes.includes(file.type)) {
     throw new Error(`${file.name}: format file tidak didukung.`);
   }
 
-  const bitmap = await createImageBitmap(file);
+  let bitmap;
 
   try {
-    const scale = Math.min(
-      1,
-      MAX_DIMENSION / Math.max(bitmap.width, bitmap.height)
-    );
+    bitmap = await createImageBitmap(file);
+  } catch {
+    throw new Error(`${file.name}: gambar tidak dapat dibuka oleh browser.`);
+  }
 
-    const canvas = document.createElement("canvas");
-
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-
-    const context = canvas.getContext("2d");
-
-    if (!context) {
-      throw new Error("Browser tidak dapat memproses gambar.");
+  try {
+    if (!bitmap.width || !bitmap.height) {
+      throw new Error(`${file.name}: dimensi gambar tidak valid.`);
     }
 
-    context.drawImage(
-      bitmap,
-      0,
-      0,
-      canvas.width,
-      canvas.height
-    );
+    let lastBlob = null;
 
-    let blob = await new Promise((resolve) => {
-      canvas.toBlob(resolve, "image/webp", WEBP_QUALITY);
-    });
+    // Coba mempertahankan resolusi setinggi mungkin, lalu turunkan kualitas
+    // dan dimensi secara bertahap apabila hasil WebP masih di atas 5 MB.
+    const dimensions = [
+      ...new Set([MAX_DIMENSION, ...DIMENSION_LEVELS]),
+    ];
 
-    if (!blob) {
-      throw new Error(`Gagal mengonversi ${file.name}.`);
-    }
-
-    if (blob.size > MAX_OUTPUT_SIZE) {
-      blob = await new Promise((resolve) => {
-        canvas.toBlob(resolve, "image/webp", 0.65);
-      });
-    }
-
-    if (!blob || blob.size > MAX_OUTPUT_SIZE) {
-      throw new Error(
-        `${file.name}: ukuran hasil masih melebihi 5 MB.`
+    for (const maxDimension of dimensions) {
+      const scale = Math.min(
+        1,
+        maxDimension / Math.max(bitmap.width, bitmap.height)
       );
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Browser tidak dapat memproses gambar.");
+      }
+
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+      for (const quality of QUALITY_LEVELS) {
+        const blob = await canvasToWebP(canvas, quality);
+        lastBlob = blob;
+
+        if (blob.size <= MAX_OUTPUT_SIZE) {
+          return new File(
+            [blob],
+            `${file.name.replace(/\.[^.]+$/, "")}.webp`,
+            {
+              type: "image/webp",
+              lastModified: Date.now(),
+            }
+          );
+        }
+      }
+
+      canvas.width = 0;
+      canvas.height = 0;
     }
 
-    return new File(
-      [blob],
-      `${file.name.replace(/\.[^.]+$/, "")}.webp`,
-      {
-        type: "image/webp",
-        lastModified: Date.now(),
-      }
+    const finalSize = lastBlob
+      ? `${(lastBlob.size / (1024 * 1024)).toFixed(2)} MB`
+      : "tidak diketahui";
+
+    throw new Error(
+      `${file.name}: ukuran hasil masih ${finalSize} setelah kompresi. Coba gunakan foto dengan ukuran file awal yang lebih kecil.`
     );
   } finally {
     bitmap.close();
@@ -93,13 +118,11 @@ export default function VehicleImageUploader({
   disabled = false,
 }) {
   const inputRef = useRef(null);
-
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
 
   const handleFiles = async (event) => {
     const files = Array.from(event.target.files || []);
-
     event.target.value = "";
 
     if (!files.length) return;
@@ -118,34 +141,36 @@ export default function VehicleImageUploader({
     const newImages = [];
     const errors = [];
 
-    for (const file of selectedFiles) {
-      try {
-        const convertedFile = await convertToWebP(file);
+    try {
+      for (const file of selectedFiles) {
+        try {
+          const convertedFile = await convertToWebP(file);
 
-        newImages.push({
-          id: createId(),
-          file: convertedFile,
-          previewUrl: URL.createObjectURL(convertedFile),
-          existingUrl: null,
-        });
-      } catch (err) {
-        errors.push(err.message);
+          newImages.push({
+            id: createId(),
+            file: convertedFile,
+            previewUrl: URL.createObjectURL(convertedFile),
+            existingUrl: null,
+          });
+        } catch (conversionError) {
+          errors.push(conversionError.message);
+        }
       }
-    }
 
-    if (newImages.length) {
-      onChange([...images, ...newImages]);
-    }
+      if (newImages.length) {
+        onChange([...images, ...newImages]);
+      }
 
-    if (errors.length) {
-      setError(errors.join(" "));
-    } else if (files.length > remaining) {
-      setError(
-        `Hanya ${remaining} foto yang ditambahkan karena batas maksimal ${MAX_IMAGES} foto.`
-      );
+      if (errors.length) {
+        setError(errors.join(" "));
+      } else if (files.length > remaining) {
+        setError(
+          `Hanya ${remaining} foto yang ditambahkan karena batas maksimal ${MAX_IMAGES} foto.`
+        );
+      }
+    } finally {
+      setProcessing(false);
     }
-
-    setProcessing(false);
   };
 
   const removeImage = (index) => {
@@ -176,7 +201,6 @@ export default function VehicleImageUploader({
     }
 
     const updated = [...images];
-
     [updated[index], updated[targetIndex]] = [
       updated[targetIndex],
       updated[index],
@@ -193,7 +217,11 @@ export default function VehicleImageUploader({
             Galeri Foto Kendaraan
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            Maksimal {MAX_IMAGES} foto. Format penyimpanan WebP.
+            Maksimal {MAX_IMAGES} foto. Disimpan dalam WebP, sisi terpanjang
+            hingga {MAX_DIMENSION}px, maksimal 5 MB per foto.
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            Foto ditampilkan utuh dan tidak dipotong.
           </p>
         </div>
 
@@ -221,7 +249,7 @@ export default function VehicleImageUploader({
         {processing ? (
           <>
             <LoaderCircle size={20} className="animate-spin" />
-            Memproses foto...
+            Mengoptimalkan foto...
           </>
         ) : (
           <>
@@ -244,11 +272,11 @@ export default function VehicleImageUploader({
               key={image.id}
               className="relative overflow-hidden border border-[#333] bg-[#111]"
             >
-              <div className="aspect-[4/3]">
+              <div className="flex aspect-[4/3] items-center justify-center bg-[#0b0b0b] p-1">
                 <img
                   src={image.previewUrl || image.existingUrl}
                   alt={`Foto kendaraan ${index + 1}`}
-                  className="h-full w-full object-cover"
+                  className="max-h-full max-w-full object-contain"
                 />
               </div>
 

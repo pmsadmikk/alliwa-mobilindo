@@ -34,6 +34,16 @@ const emptyForm = {
 const inputClass =
   "w-full border border-[#333] bg-[#111] px-4 py-3 text-sm text-white outline-none transition focus:border-[#80D927]";
 
+const formatPriceInput = (value) => {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits ? new Intl.NumberFormat("id-ID").format(Number(digits)) : "";
+};
+
+const parsePriceInput = (value) => {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  return digits ? Number(digits) : 0;
+};
+
 export default function AdminDashboard() {
   const { vehicles, loading, error, refreshVehicles } = useVehicles();
   const { user, logout } = useAuth();
@@ -99,7 +109,7 @@ export default function AdminDashboard() {
       year: car.year || "",
       transmission: car.transmission || "Automatic",
       mileage: car.mileage || "",
-      price: String(car.price ?? ""),
+      price: formatPriceInput(car.price),
       image: car.image || car.images?.[0] || "",
       status: car.status || "Available",
     });
@@ -129,7 +139,7 @@ export default function AdminDashboard() {
 
     setForm((previous) => ({
       ...previous,
-      [name]: value,
+      [name]: name === "price" ? formatPriceInput(value) : value,
     }));
   };
 
@@ -141,6 +151,13 @@ export default function AdminDashboard() {
 
     if (formImages.length === 0) {
       alert("Silakan pilih minimal satu foto kendaraan.");
+      return;
+    }
+
+    const priceValue = parsePriceInput(form.price);
+
+    if (!Number.isSafeInteger(priceValue) || priceValue <= 0) {
+      alert("Masukkan harga kendaraan yang valid.");
       return;
     }
 
@@ -195,7 +212,7 @@ export default function AdminDashboard() {
         year: Number(form.year),
         transmission: form.transmission,
         mileage: form.mileage.trim(),
-        price: Number(form.price),
+        price: priceValue,
         image: imageUrls[0],
         images: imageUrls,
         status: form.status,
@@ -511,7 +528,7 @@ export default function AdminDashboard() {
                                 <img
                                   src={carImage}
                                   alt={car.name}
-                                  className="h-12 w-16 object-cover"
+                                  className="h-12 w-16 bg-[#111] object-contain"
                                 />
                               ) : (
                                 <div className="flex h-12 w-16 items-center justify-center bg-[#252525] text-gray-500">
@@ -720,17 +737,27 @@ export default function AdminDashboard() {
                   />
                 </FormField>
 
-                <FormField label="Harga (Rupiah)">
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    name="price"
-                    value={form.price}
-                    onChange={handleChange}
-                    placeholder="685000000"
-                    className={inputClass}
-                  />
+                <FormField label="Harga Kendaraan">
+                  <div className="flex w-full items-center border border-[#333] bg-[#111] transition focus-within:border-[#80D927]">
+                    <span className="border-r border-[#333] px-4 py-3 text-sm font-semibold text-[#80D927]">
+                      Rp
+                    </span>
+                    <input
+                      required
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      name="price"
+                      value={form.price}
+                      onChange={handleChange}
+                      placeholder="540.000.000"
+                      aria-label="Harga kendaraan dalam rupiah"
+                      className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm text-white outline-none"
+                    />
+                  </div>
+                  <p className="mt-1 text-[10px] text-gray-500">
+                    Gunakan angka saja. Titik ribuan akan ditambahkan otomatis.
+                  </p>
                 </FormField>
 
                 <FormField label="Status">
