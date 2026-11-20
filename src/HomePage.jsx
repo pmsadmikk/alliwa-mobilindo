@@ -52,6 +52,29 @@ const PRICE_RANGES = [
   { value: "above-500", label: "> Rp 500 Juta" },
 ];
 
+function CatalogVehicleImage({ src, alt }) {
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  const handleLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (naturalWidth && naturalHeight) {
+      setIsPortrait(naturalHeight > naturalWidth);
+    }
+  };
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onLoad={handleLoad}
+      className={`h-full w-full object-cover transition duration-300 group-hover:scale-105 ${
+        isPortrait ? "object-[50%_78%]" : "object-center"
+      }`}
+    />
+  );
+}
+
 export default function HomePage() {
   const { vehicles } = useVehicles();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -550,24 +573,23 @@ export default function HomePage() {
                     key={car.id}
                     className="group overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-                    <div className="relative overflow-hidden bg-[#F5F5F2]">
+                    <div className="relative overflow-hidden bg-[#EAEAE6]">
                       <Link
                         to={`/mobil/${car.id}`}
                         onClick={saveCatalogPosition}
                         aria-label={`Lihat detail ${car.name}`}
-                        className="relative flex h-64 w-full items-center justify-center"
+                        className="relative block h-64 w-full"
                       >
-                        <img
+                        <CatalogVehicleImage
                           src={car.images?.[0] || car.image}
                           alt={car.name}
-                          loading="lazy"
-                          className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-105"
                         />
-                        <span className="pointer-events-none absolute left-4 top-4 rounded-full bg-[#80D927] px-3.5 py-1.5 text-[9px] font-bold tracking-widest text-black">
+                        <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/35 to-transparent" />
+                        <span className="pointer-events-none absolute left-4 top-4 rounded-full bg-[#80D927] px-3.5 py-1.5 text-[9px] font-bold tracking-widest text-black shadow-sm">
                           ALLIWA CHOICE
                         </span>
                         <span
-                          className={`pointer-events-none absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-[9px] font-bold tracking-widest ${
+                          className={`pointer-events-none absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-[9px] font-bold tracking-widest shadow-sm ${
                             statusStyles[status] || statusStyles.Available
                           }`}
                         >
