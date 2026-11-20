@@ -52,62 +52,14 @@ const PRICE_RANGES = [
   { value: "above-500", label: "> Rp 500 Juta" },
 ];
 
-// Menghitung titik fokus proporsional berdasarkan orientasi & energi kontras vertikal
-function computeSmartObjectPosition(img) {
-  const { naturalWidth: w, naturalHeight: h } = img;
-  if (!w || !h) return "50% 50%";
-
-  const isPortrait = h > w;
-  const posX = 50;
-  let posY = isPortrait ? 76 : 56;
-
-  try {
-    const canvas = document.createElement("canvas");
-    const size = 48;
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (ctx) {
-      ctx.drawImage(img, 0, 0, size, size);
-      const rowScores = [];
-      for (let y = 1; y < size - 1; y++) {
-        let rowEnergy = 0;
-        for (let x = 2; x < size - 2; x++) {
-          const gx = Math.abs(
-            ctx.getImageData(x + 1, y, 1, 1).data[0] -
-              ctx.getImageData(x - 1, y, 1, 1).data[0]
-          );
-          const gy = Math.abs(
-            ctx.getImageData(x, y + 1, 1, 1).data[0] -
-              ctx.getImageData(x, y - 1, 1, 1).data[0]
-          );
-          rowEnergy += gx + gy;
-        }
-        rowScores.push({ y, score: rowEnergy });
-      }
-      rowScores.sort((a, b) => b.score - a.score);
-      const topRows = rowScores.slice(0, 6);
-      if (topRows.length > 0) {
-        const avgY =
-          topRows.reduce((acc, item) => acc + item.y, 0) / topRows.length;
-        const detectedPercent = Math.round((avgY / size) * 100);
-        posY = isPortrait
-          ? Math.min(85, Math.max(60, detectedPercent))
-          : Math.min(72, Math.max(42, detectedPercent));
-      }
-    }
-  } catch {
-    posY = isPortrait ? 78 : 55;
-  }
-
-  return `${posX}% ${posY}%`;
-}
-
 function CatalogVehicleImage({ src, alt }) {
-  const [objectPos, setObjectPos] = useState("50% 55%");
+  const [isPortrait, setIsPortrait] = useState(false);
 
   const handleLoad = (e) => {
-    setObjectPos(computeSmartObjectPosition(e.currentTarget));
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (naturalWidth && naturalHeight) {
+      setIsPortrait(naturalHeight > naturalWidth);
+    }
   };
 
   return (
@@ -115,16 +67,10 @@ function CatalogVehicleImage({ src, alt }) {
       src={src}
       alt={alt}
       loading="lazy"
-      crossOrigin="anonymous"
       onLoad={handleLoad}
-      onError={(e) => {
-        if (e.currentTarget.crossOrigin) {
-          e.currentTarget.removeAttribute("crossOrigin");
-          e.currentTarget.src = src;
-        }
-      }}
-      style={{ objectPosition: objectPos }}
-      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+      className={`h-full w-full object-cover transition duration-300 group-hover:scale-105 ${
+        isPortrait ? "object-[50%_75%]" : "object-center"
+      }`}
     />
   );
 }
@@ -139,7 +85,6 @@ export default function HomePage() {
   const [priceRange, setPriceRange] = useState("Semua");
   const hasRestoredPosition = useRef(false);
 
-  // Ekstrak daftar merek & tahun unik secara dinamis dari data Supabase
   const availableBrands = useMemo(() => {
     const brands = vehicles
       .map((car) => (car.brand || "").trim())
@@ -157,7 +102,6 @@ export default function HomePage() {
     ];
   }, [vehicles]);
 
-  // Pulihkan filter dan posisi katalog setelah pengunjung kembali dari halaman detail.
   useEffect(() => {
     if (hasRestoredPosition.current || vehicles.length === 0) return;
 
@@ -337,7 +281,6 @@ export default function HomePage() {
 
       {/* HERO SECTION */}
       <section className="relative overflow-hidden bg-[#111111]">
-        {/* Background Studio Automotive Image */}
         <div className="pointer-events-none absolute inset-0">
           <img
             src="https://images.unsplash.com/photo-1617788138017-80ad40651399?w=2000&q=85"
@@ -364,7 +307,6 @@ export default function HomePage() {
             dan Proses Mudah di Alliwa.
           </p>
 
-          {/* PILL CTA BUTTONS */}
           <div className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:gap-4">
             <a
               href="#katalog"
@@ -380,12 +322,10 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* INTERACTIVE SEARCH & FILTER BAR */}
           <form
             onSubmit={handleHeroSearchSubmit}
             className="mt-10 rounded-2xl border border-white/10 bg-[#181818]/90 p-3.5 shadow-2xl backdrop-blur-md sm:p-5"
           >
-            {/* Search Input */}
             <div className="flex items-center gap-3 rounded-xl border border-[#80D927]/70 bg-[#111111] px-4 py-3.5 focus-within:border-[#80D927] focus-within:ring-2 focus-within:ring-[#80D927]/20">
               <Search size={19} className="shrink-0 text-[#80D927]" />
               <input
@@ -412,9 +352,7 @@ export default function HomePage() {
               </button>
             </div>
 
-            {/* 3 Quick Dropdown Filters: Pilih Merek, Pilih Tahun, Range Harga */}
             <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
-              {/* Pilih Merek */}
               <div className="relative flex items-center rounded-xl border border-white/15 bg-[#242424] px-2.5 py-2.5 sm:px-3.5">
                 <CarFront
                   size={15}
@@ -443,7 +381,6 @@ export default function HomePage() {
                 </select>
               </div>
 
-              {/* Pilih Tahun */}
               <div className="relative flex items-center rounded-xl border border-white/15 bg-[#242424] px-2.5 py-2.5 sm:px-3.5">
                 <Calendar
                   size={15}
@@ -472,7 +409,6 @@ export default function HomePage() {
                 </select>
               </div>
 
-              {/* Range Harga */}
               <div className="relative flex items-center rounded-xl border border-white/15 bg-[#242424] px-2.5 py-2.5 sm:px-3.5">
                 <SlidersHorizontal
                   size={15}
@@ -498,7 +434,6 @@ export default function HomePage() {
             </div>
           </form>
 
-          {/* 3 LIME USP HIGHLIGHT CARDS */}
           <div className="mt-6 grid grid-cols-3 gap-2.5 sm:gap-5">
             <div className="flex flex-col items-center rounded-2xl bg-[#80D927] px-2.5 py-5 text-center text-[#111111] shadow-lg sm:px-6 sm:py-7">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#111111]/80 bg-black/5 sm:h-14 sm:w-14">
@@ -549,7 +484,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* BOTTOM MICRO TRUST STRIP */}
           <div className="mt-7 grid grid-cols-2 gap-4 border-t border-white/10 pt-6 sm:grid-cols-3">
             <div className="flex items-start gap-2.5">
               <CarFront size={16} className="mt-0.5 shrink-0 text-[#80D927]" />
@@ -624,7 +558,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* CATEGORY & ACTIVE FILTER BAR */}
           <div className="mb-10 flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-2.5">
               {["Semua", "Sedan", "MPV", "SUV"].map((item) => (
@@ -652,7 +585,6 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* VEHICLE CARDS */}
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {filteredVehicles.length > 0 ? (
               filteredVehicles.map((car) => {
