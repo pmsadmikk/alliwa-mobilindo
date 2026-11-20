@@ -52,14 +52,62 @@ const PRICE_RANGES = [
   { value: "above-500", label: "> Rp 500 Juta" },
 ];
 
+// Menghitung titik fokus proporsional berdasarkan orientasi & energi kontras vertikal
+function computeSmartObjectPosition(img) {
+  const { naturalWidth: w, naturalHeight: h } = img;
+  if (!w || !h) return "50% 50%";
+
+  const isPortrait = h > w;
+  const posX = 50;
+  let posY = isPortrait ? 76 : 56;
+
+  try {
+    const canvas = document.createElement("canvas");
+    const size = 48;
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (ctx) {
+      ctx.drawImage(img, 0, 0, size, size);
+      const rowScores = [];
+      for (let y = 1; y < size - 1; y++) {
+        let rowEnergy = 0;
+        for (let x = 2; x < size - 2; x++) {
+          const gx = Math.abs(
+            ctx.getImageData(x + 1, y, 1, 1).data[0] -
+              ctx.getImageData(x - 1, y, 1, 1).data[0]
+          );
+          const gy = Math.abs(
+            ctx.getImageData(x, y + 1, 1, 1).data[0] -
+              ctx.getImageData(x, y - 1, 1, 1).data[0]
+          );
+          rowEnergy += gx + gy;
+        }
+        rowScores.push({ y, score: rowEnergy });
+      }
+      rowScores.sort((a, b) => b.score - a.score);
+      const topRows = rowScores.slice(0, 6);
+      if (topRows.length > 0) {
+        const avgY =
+          topRows.reduce((acc, item) => acc + item.y, 0) / topRows.length;
+        const detectedPercent = Math.round((avgY / size) * 100);
+        posY = isPortrait
+          ? Math.min(85, Math.max(60, detectedPercent))
+          : Math.min(72, Math.max(42, detectedPercent));
+      }
+    }
+  } catch {
+    posY = isPortrait ? 78 : 55;
+  }
+
+  return `${posX}% ${posY}%`;
+}
+
 function CatalogVehicleImage({ src, alt }) {
-  const [isPortrait, setIsPortrait] = useState(false);
+  const [objectPos, setObjectPos] = useState("50% 55%");
 
   const handleLoad = (e) => {
-    const { naturalWidth, naturalHeight } = e.currentTarget;
-    if (naturalWidth && naturalHeight) {
-      setIsPortrait(naturalHeight > naturalWidth);
-    }
+    setObjectPos(computeSmartObjectPosition(e.currentTarget));
   };
 
   return (
@@ -67,10 +115,16 @@ function CatalogVehicleImage({ src, alt }) {
       src={src}
       alt={alt}
       loading="lazy"
+      crossOrigin="anonymous"
       onLoad={handleLoad}
-      className={`h-full w-full object-cover transition duration-300 group-hover:scale-105 ${
-        isPortrait ? "object-[50%_78%]" : "object-center"
-      }`}
+      onError={(e) => {
+        if (e.currentTarget.crossOrigin) {
+          e.currentTarget.removeAttribute("crossOrigin");
+          e.currentTarget.src = src;
+        }
+      }}
+      style={{ objectPosition: objectPos }}
+      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
     />
   );
 }
@@ -97,7 +151,10 @@ export default function HomePage() {
     const years = vehicles
       .map((car) => String(car.year || "").trim())
       .filter(Boolean);
-    return ["Semua", ...Array.from(new Set(years)).sort((a, b) => Number(b) - Number(a))];
+    return [
+      "Semua",
+      ...Array.from(new Set(years)).sort((a, b) => Number(b) - Number(a)),
+    ];
   }, [vehicles]);
 
   // Pulihkan filter dan posisi katalog setelah pengunjung kembali dari halaman detail.
@@ -359,7 +416,10 @@ export default function HomePage() {
             <div className="mt-3 grid grid-cols-3 gap-2 sm:gap-3">
               {/* Pilih Merek */}
               <div className="relative flex items-center rounded-xl border border-white/15 bg-[#242424] px-2.5 py-2.5 sm:px-3.5">
-                <CarFront size={15} className="mr-1.5 hidden shrink-0 text-gray-300 sm:block" />
+                <CarFront
+                  size={15}
+                  className="mr-1.5 hidden shrink-0 text-gray-300 sm:block"
+                />
                 <select
                   value={selectedBrand}
                   onChange={(e) => setSelectedBrand(e.target.value)}
@@ -372,7 +432,11 @@ export default function HomePage() {
                   {availableBrands
                     .filter((b) => b !== "Semua")
                     .map((brand) => (
-                      <option key={brand} value={brand} className="bg-[#111111] text-white">
+                      <option
+                        key={brand}
+                        value={brand}
+                        className="bg-[#111111] text-white"
+                      >
                         {brand}
                       </option>
                     ))}
@@ -381,7 +445,10 @@ export default function HomePage() {
 
               {/* Pilih Tahun */}
               <div className="relative flex items-center rounded-xl border border-white/15 bg-[#242424] px-2.5 py-2.5 sm:px-3.5">
-                <Calendar size={15} className="mr-1.5 hidden shrink-0 text-gray-300 sm:block" />
+                <Calendar
+                  size={15}
+                  className="mr-1.5 hidden shrink-0 text-gray-300 sm:block"
+                />
                 <select
                   value={selectedYear}
                   onChange={(e) => setSelectedYear(e.target.value)}
@@ -394,7 +461,11 @@ export default function HomePage() {
                   {availableYears
                     .filter((y) => y !== "Semua")
                     .map((year) => (
-                      <option key={year} value={year} className="bg-[#111111] text-white">
+                      <option
+                        key={year}
+                        value={year}
+                        className="bg-[#111111] text-white"
+                      >
                         {year}
                       </option>
                     ))}
@@ -431,7 +502,11 @@ export default function HomePage() {
           <div className="mt-6 grid grid-cols-3 gap-2.5 sm:gap-5">
             <div className="flex flex-col items-center rounded-2xl bg-[#80D927] px-2.5 py-5 text-center text-[#111111] shadow-lg sm:px-6 sm:py-7">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#111111]/80 bg-black/5 sm:h-14 sm:w-14">
-                <CarFront size={26} strokeWidth={2.2} className="text-[#111111]" />
+                <CarFront
+                  size={26}
+                  strokeWidth={2.2}
+                  className="text-[#111111]"
+                />
               </div>
               <h2 className="text-xs font-extrabold leading-tight sm:text-base">
                 Premium Car
@@ -443,7 +518,11 @@ export default function HomePage() {
 
             <div className="flex flex-col items-center rounded-2xl bg-[#80D927] px-2.5 py-5 text-center text-[#111111] shadow-lg sm:px-6 sm:py-7">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#111111]/80 bg-black/5 sm:h-14 sm:w-14">
-                <FileCheck2 size={26} strokeWidth={2.2} className="text-[#111111]" />
+                <FileCheck2
+                  size={26}
+                  strokeWidth={2.2}
+                  className="text-[#111111]"
+                />
               </div>
               <h2 className="text-xs font-extrabold leading-tight sm:text-base">
                 Dokumen
@@ -455,7 +534,11 @@ export default function HomePage() {
 
             <div className="flex flex-col items-center rounded-2xl bg-[#80D927] px-2.5 py-5 text-center text-[#111111] shadow-lg sm:px-6 sm:py-7">
               <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border-2 border-[#111111]/80 bg-black/5 sm:h-14 sm:w-14">
-                <Gauge size={26} strokeWidth={2.2} className="text-[#111111]" />
+                <Gauge
+                  size={26}
+                  strokeWidth={2.2}
+                  className="text-[#111111]"
+                />
               </div>
               <h2 className="text-xs font-extrabold leading-tight sm:text-base">
                 Layanan Cepat
@@ -481,7 +564,10 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-start gap-2.5">
-              <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#80D927]" />
+              <ShieldCheck
+                size={16}
+                className="mt-0.5 shrink-0 text-[#80D927]"
+              />
               <div>
                 <p className="text-[10px] font-bold tracking-[0.14em] text-[#80D927]">
                   INFORMASI JELAS
@@ -508,7 +594,10 @@ export default function HomePage() {
       </section>
 
       {/* CATALOG */}
-      <section id="katalog" className="bg-[#F5F5F2] px-5 py-20 text-[#171717] lg:px-12 lg:py-28">
+      <section
+        id="katalog"
+        className="bg-[#F5F5F2] px-5 py-20 text-[#171717] lg:px-12 lg:py-28"
+      >
         <div className="mx-auto max-w-7xl">
           <div className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
@@ -578,7 +667,7 @@ export default function HomePage() {
                         to={`/mobil/${car.id}`}
                         onClick={saveCatalogPosition}
                         aria-label={`Lihat detail ${car.name}`}
-                        className="relative block h-64 w-full"
+                        className="relative block aspect-[4/3] w-full"
                       >
                         <CatalogVehicleImage
                           src={car.images?.[0] || car.image}
