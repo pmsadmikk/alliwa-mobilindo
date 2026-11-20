@@ -1,11 +1,23 @@
-
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useVehicles } from "./context/VehicleContext";
 import { CarFront, Search, Menu, X, ArrowRight, CheckCircle2 } from "lucide-react";
 
+const CATALOG_RETURN_KEY = "alliwa_catalog_return_position";
+
 const formatPrice = (price) =>
-  "Rp " + new Intl.NumberFormat("id-ID").format(price);
+  "Rp " + new Intl.NumberFormat("id-ID").format(Number(price) || 0);
+
+const formatMileage = (mileage) => {
+  if (mileage === null || mileage === undefined || mileage === "") {
+    return "Belum tersedia";
+  }
+
+  const numericMileage = Number(mileage);
+  return Number.isFinite(numericMileage)
+    ? `${new Intl.NumberFormat("id-ID").format(numericMileage)} km`
+    : `${mileage} km`;
+};
 
 const statusStyles = {
   Available: "bg-[#80D927] text-black",
@@ -21,19 +33,53 @@ const statusLabels = {
 
 export default function HomePage() {
   const { vehicles } = useVehicles();
-
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Semua");
+  const hasRestoredPosition = useRef(false);
+
+  // Pulihkan filter dan posisi katalog setelah pengunjung kembali dari halaman detail.
+  useEffect(() => {
+    if (hasRestoredPosition.current || vehicles.length === 0) return;
+
+    const savedState = sessionStorage.getItem(CATALOG_RETURN_KEY);
+    if (!savedState) return;
+
+    hasRestoredPosition.current = true;
+
+    try {
+      const saved = JSON.parse(savedState);
+      setSearch(saved.search || "");
+      setCategory(saved.category || "Semua");
+
+      const savedScrollY = Number(saved.scrollY) || 0;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo(0, savedScrollY);
+          sessionStorage.removeItem(CATALOG_RETURN_KEY);
+        });
+      });
+    } catch {
+      sessionStorage.removeItem(CATALOG_RETURN_KEY);
+    }
+  }, [vehicles.length]);
+
+  const saveCatalogPosition = () => {
+    sessionStorage.setItem(
+      CATALOG_RETURN_KEY,
+      JSON.stringify({
+        scrollY: window.scrollY,
+        search,
+        category,
+      })
+    );
+  };
 
   const filteredVehicles = vehicles.filter((car) => {
     const matchesSearch =
       (car.name || "").toLowerCase().includes(search.toLowerCase()) ||
       (car.brand || "").toLowerCase().includes(search.toLowerCase());
-
-    const matchesCategory =
-      category === "Semua" || car.category === category;
-
+    const matchesCategory = category === "Semua" || car.category === category;
     return matchesSearch && matchesCategory;
   });
 
@@ -116,24 +162,18 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#111111] via-transparent to-transparent" />
-
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-24 lg:px-12">
           <p className="mb-7 text-[10px] font-semibold tracking-[0.35em] text-[#80D927] sm:text-xs">
             SELAMAT DATANG DI ALLIWA MOBILINDO
           </p>
-
           <h1 className="max-w-3xl text-5xl font-light leading-[1.15] tracking-wide sm:text-6xl lg:text-8xl">
             TEMUKAN
             <br />
             <span className="font-extrabold text-[#80D927]">MOBIL IMPIAN.</span>
           </h1>
-
           <p className="mt-8 max-w-lg text-sm leading-7 text-gray-300 sm:text-base">
-            Temukan mobil bekas berkualitas dengan pilihan unit
-            yang sesuai kebutuhan dan anggaran Anda. Dapatkan
-            informasi kendaraan secara jelas bersama Alliwa Mobilindo.
+            Temukan mobil bekas berkualitas dengan pilihan unit yang sesuai kebutuhan dan anggaran Anda. Dapatkan informasi kendaraan secara jelas bersama Alliwa Mobilindo.
           </p>
-
           <div className="mt-10 flex flex-wrap gap-4">
             <a
               href="#katalog"
@@ -141,7 +181,6 @@ export default function HomePage() {
             >
               JELAJAHI KATALOG <ArrowRight size={15} />
             </a>
-
             <a
               href="#tentang"
               className="border border-white/50 px-7 py-4 text-[10px] tracking-[0.15em] text-white transition hover:border-[#80D927] hover:text-[#80D927]"
@@ -149,7 +188,6 @@ export default function HomePage() {
               TENTANG KAMI
             </a>
           </div>
-
           <p className="mt-12 text-xs font-medium tracking-widest text-gray-400">
             TEMUKAN MOBIL IMPIAN ANDA BERSAMA <span className="text-[#80D927]">ALLIWA.</span>
           </p>
@@ -166,12 +204,8 @@ export default function HomePage() {
             ["KEMUDAHAN", "Proses pembelian lebih mudah"],
           ].map(([title, description]) => (
             <div key={title} className="px-4 py-3 text-center">
-              <p className="text-[10px] font-bold tracking-[0.15em] text-[#80D927]">
-                {title}
-              </p>
-              <p className="mt-2 text-xs text-gray-400">
-                {description}
-              </p>
+              <p className="text-[10px] font-bold tracking-[0.15em] text-[#80D927]">{title}</p>
+              <p className="mt-2 text-xs text-gray-400">{description}</p>
             </div>
           ))}
         </div>
@@ -182,23 +216,19 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
-              <p className="mb-4 text-[10px] font-bold tracking-[0.35em] text-[#5FA91C]">
-                KOLEKSI ALLIWA MOBILINDO
-              </p>
+              <p className="mb-4 text-[10px] font-bold tracking-[0.35em] text-[#5FA91C]">KOLEKSI ALLIWA MOBILINDO</p>
               <h2 className="text-4xl font-light sm:text-5xl">
                 Temukan <span className="font-extrabold">Mobil Pilihan Anda.</span>
               </h2>
               <p className="mt-4 max-w-lg text-sm leading-6 text-gray-500">
-                Lihat pilihan kendaraan yang tersedia dan temukan
-                mobil yang sesuai dengan kebutuhan Anda.
+                Lihat pilihan kendaraan yang tersedia dan temukan mobil yang sesuai dengan kebutuhan Anda.
               </p>
             </div>
-
             <div className="flex items-center gap-3 border-b border-gray-300 pb-3 md:w-80">
               <Search size={18} className="text-gray-400" />
               <input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cari merek atau model mobil..."
                 className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
               />
@@ -227,29 +257,27 @@ export default function HomePage() {
             {filteredVehicles.length > 0 ? (
               filteredVehicles.map((car) => {
                 const status = car.status || "Available";
-
                 return (
                   <article
                     key={car.id}
                     className="group overflow-hidden bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
                   >
-                    {/* CLICKABLE VEHICLE IMAGE */}
-                    <div className="relative overflow-hidden">
+                    <div className="relative overflow-hidden bg-[#F5F5F2]">
                       <Link
                         to={`/mobil/${car.id}`}
+                        onClick={saveCatalogPosition}
                         aria-label={`Lihat detail ${car.name}`}
-                        className="relative block cursor-pointer"
+                        className="relative flex h-64 w-full items-center justify-center"
                       >
                         <img
                           src={car.images?.[0] || car.image}
                           alt={car.name}
-                          className="h-64 w-full object-cover transition duration-700 group-hover:scale-105"
+                          loading="lazy"
+                          className="h-full w-full object-contain p-2 transition duration-300"
                         />
-
                         <span className="pointer-events-none absolute left-5 top-5 bg-[#80D927] px-4 py-2 text-[9px] font-bold tracking-widest text-black">
                           ALLIWA CHOICE
                         </span>
-
                         <span
                           className={`pointer-events-none absolute right-5 top-5 px-4 py-2 text-[9px] font-bold tracking-widest ${
                             statusStyles[status] || statusStyles.Available
@@ -264,29 +292,19 @@ export default function HomePage() {
                       <p className="text-[10px] font-semibold tracking-widest text-[#5FA91C]">
                         {car.year} · {car.category}
                       </p>
-
-                      <h3 className="mt-3 text-xl font-bold text-[#171717]">
-                        {car.name}
-                      </h3>
-
+                      <h3 className="mt-3 text-xl font-bold text-[#171717]">{car.name}</h3>
                       <div className="mt-5 flex flex-wrap gap-4 text-[11px] text-gray-500">
                         <span>{car.transmission}</span>
-                        <span>{car.mileage}</span>
+                        <span>{formatMileage(car.mileage)}</span>
                       </div>
-
                       <div className="mt-7 flex items-end justify-between border-t border-gray-200 pt-5">
                         <div>
-                          <p className="text-[10px] font-medium text-gray-400">
-                            HARGA MOBIL
-                          </p>
-                          <p className="mt-2 text-lg font-extrabold text-[#171717]">
-                            {formatPrice(car.price)}
-                          </p>
+                          <p className="text-[10px] font-medium text-gray-400">HARGA MOBIL</p>
+                          <p className="mt-2 text-lg font-extrabold text-[#171717]">{formatPrice(car.price)}</p>
                         </div>
-
-                        {/* DETAIL BUTTON */}
                         <Link
                           to={`/mobil/${car.id}`}
+                          onClick={saveCatalogPosition}
                           className="flex items-center gap-2 bg-[#171717] px-5 py-3 text-[10px] font-bold tracking-widest text-white transition hover:bg-[#80D927] hover:text-black"
                         >
                           DETAIL <ArrowRight size={13} />
@@ -313,9 +331,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-14 text-center">
-            <p className="text-xs text-gray-500">
-              Ingin mengetahui lebih lanjut mengenai unit kendaraan kami?
-            </p>
+            <p className="text-xs text-gray-500">Ingin mengetahui lebih lanjut mengenai unit kendaraan kami?</p>
             <a
               href="#kontak"
               className="mt-5 inline-flex items-center gap-3 bg-[#171717] px-9 py-4 text-[10px] font-bold tracking-[0.15em] text-white transition hover:bg-[#80D927] hover:text-black"
@@ -336,33 +352,20 @@ export default function HomePage() {
               className="h-[400px] w-full object-cover md:h-[520px]"
             />
             <div className="absolute -bottom-5 -right-4 border border-[#80D927] bg-[#171717] p-6 md:-right-5">
-              <p className="text-xs font-bold tracking-widest text-[#80D927]">
-                ALLIWA
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                YOUR TRUSTED CAR PARTNER
-              </p>
+              <p className="text-xs font-bold tracking-widest text-[#80D927]">ALLIWA</p>
+              <p className="mt-1 text-xs text-gray-400">YOUR TRUSTED CAR PARTNER</p>
             </div>
           </div>
-
           <div>
-            <p className="text-[10px] font-bold tracking-[0.35em] text-[#80D927]">
-              MENGAPA MEMILIH ALLIWA
-            </p>
-
+            <p className="text-[10px] font-bold tracking-[0.35em] text-[#80D927]">MENGAPA MEMILIH ALLIWA</p>
             <h2 className="mt-6 text-4xl font-light leading-tight md:text-5xl">
               Lebih Dari
               <br />
               Sekadar <span className="font-extrabold text-[#80D927]">Mobil.</span>
             </h2>
-
             <p className="mt-7 text-sm leading-8 text-gray-400">
-              Alliwa Mobilindo hadir untuk membantu Anda menemukan
-              mobil bekas yang tepat. Kami mengutamakan kualitas
-              kendaraan, informasi yang transparan, serta pelayanan
-              yang memudahkan proses pembelian.
+              Alliwa Mobilindo hadir untuk membantu Anda menemukan mobil bekas yang tepat. Kami mengutamakan kualitas kendaraan, informasi yang transparan, serta pelayanan yang memudahkan proses pembelian.
             </p>
-
             <div className="mt-9 space-y-5">
               {[
                 "Pilihan kendaraan sesuai kebutuhan",
@@ -375,7 +378,6 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
-
             <a
               href="#kontak"
               className="mt-10 inline-flex items-center gap-3 border-b border-[#80D927] pb-3 text-xs font-bold tracking-widest text-[#80D927] transition hover:text-white"
@@ -388,20 +390,13 @@ export default function HomePage() {
 
       {/* CONTACT CTA */}
       <section className="bg-[#80D927] px-6 py-20 text-center text-black">
-        <p className="text-[10px] font-extrabold tracking-[0.35em]">
-          ALLIWA MOBILINDO
-        </p>
-
+        <p className="text-[10px] font-extrabold tracking-[0.35em]">ALLIWA MOBILINDO</p>
         <h2 className="mx-auto mt-6 max-w-3xl text-4xl font-light leading-tight md:text-5xl">
-          Siap Menemukan
-          <span className="font-extrabold"> Mobil Impian Anda?</span>
+          Siap Menemukan <span className="font-extrabold">Mobil Impian Anda?</span>
         </h2>
-
         <p className="mt-5 text-sm text-black/70">
-          Hubungi tim Alliwa Mobilindo untuk mendapatkan informasi
-          mengenai pilihan kendaraan kami.
+          Hubungi tim Alliwa Mobilindo untuk mendapatkan informasi mengenai pilihan kendaraan kami.
         </p>
-
         <a
           href="#kontak"
           className="mt-9 inline-block bg-[#111111] px-9 py-4 text-[10px] font-bold tracking-widest text-white transition hover:bg-white hover:text-black"
@@ -422,18 +417,12 @@ export default function HomePage() {
                 ALLIWA <span className="text-[#80D927]">MOBILINDO</span>
               </h2>
             </div>
-
             <p className="mt-5 max-w-xs text-xs leading-7 text-gray-500">
-              Temukan mobil impian Anda bersama Alliwa Mobilindo.
-              Pilihan kendaraan dan informasi yang membantu Anda
-              mengambil keputusan pembelian.
+              Temukan mobil impian Anda bersama Alliwa Mobilindo. Pilihan kendaraan dan informasi yang membantu Anda mengambil keputusan pembelian.
             </p>
           </div>
-
           <div>
-            <h3 className="text-xs font-bold tracking-widest text-[#80D927]">
-              MENU
-            </h3>
+            <h3 className="text-xs font-bold tracking-widest text-[#80D927]">MENU</h3>
             <div className="mt-6 space-y-4 text-xs text-gray-400">
               <a href="#" className="block transition hover:text-[#80D927]">Beranda</a>
               <a href="#katalog" className="block transition hover:text-[#80D927]">Katalog Kendaraan</a>
@@ -441,12 +430,8 @@ export default function HomePage() {
               <a href="#kontak" className="block transition hover:text-[#80D927]">Kontak</a>
             </div>
           </div>
-
           <div>
-            <h3 className="text-xs font-bold tracking-widest text-[#80D927]">
-              INFORMASI KONTAK
-            </h3>
-
+            <h3 className="text-xs font-bold tracking-widest text-[#80D927]">INFORMASI KONTAK</h3>
             <div className="mt-6 space-y-4 text-xs leading-6 text-gray-400">
               <p>WhatsApp: Nomor showroom belum diatur</p>
               <p>Instagram: Akun showroom belum diatur</p>
@@ -454,11 +439,11 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
         <div className="mx-auto mt-14 max-w-7xl border-t border-white/10 pt-7 text-center text-[10px] text-gray-600">
           © 2026 ALLIWA MOBILINDO. ALL RIGHTS RESERVED.
         </div>
       </footer>
     </main>
   );
-}
+         }
+        
