@@ -103,7 +103,7 @@ export default function VehicleDetail() {
       ? `${Number(vehicle.mileage).toLocaleString("id-ID")} km`
       : "Belum tersedia";
 
-  const whatsappNumber = "6289623123123";
+  const whatsappNumber = "6281210481879";
   const whatsappMessage = encodeURIComponent(
     `Halo Alliwa Mobilindo, saya tertarik dengan ${vehicle.brand} ${vehicle.name} tahun ${vehicle.year} dengan harga ${formatRupiah(vehicle.price)}. Apakah unit ini masih tersedia?`
   );
