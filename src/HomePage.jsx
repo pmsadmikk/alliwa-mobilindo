@@ -803,9 +803,41 @@ export default function HomePage() {
               INFORMASI KONTAK
             </h3>
             <div className="mt-6 space-y-4 text-xs leading-6 text-gray-400">
-              <p>WhatsApp: Nomor showroom belum diatur</p>
-              <p>Instagram: Akun showroom belum diatur</p>
-              <p>Alamat: Alamat showroom belum diatur</p>
+              <p>
+                WhatsApp:{" "}
+                <a
+                  href="https://wa.me/6281210481879"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition hover:text-[#80D927]"
+                >
+                  +62 812-1048-1879
+                </a>
+              </p>
+              <p>
+                Instagram:{" "}
+                <a
+                  href="https://www.instagram.com/alliwamobilindo/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition hover:text-[#80D927]"
+                >
+                  @alliwamobilindo
+                </a>
+              </p>
+              <p>
+                Alamat:{" "}
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Dekat%20WS%20JAYA%20MOTOR%202%2C%20Jl.%20Gatot%20Soebroto%20No.90%2C%20RT.002%2FRW.008%2C%20Karangasih%2C%20Kec.%20Cikarang%20Utara%2C%20Kabupaten%20Bekasi%2C%20Jawa%20Barat%2017530"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition hover:text-[#80D927]"
+                >
+                  Dekat WS JAYA MOTOR 2, Jl. Gatot Soebroto No.90,
+                  RT.002/RW.008, Karangasih, Kec. Cikarang Utara, Kabupaten
+                  Bekasi, Jawa Barat 17530
+                </a>
+              </p>
             </div>
           </div>
         </div>
