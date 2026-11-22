@@ -214,17 +214,11 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#111111]/95 backdrop-blur-md">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-12">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#80D927] text-black shadow-[0_0_20px_rgba(128,217,39,0.25)]">
-              <CarFront size={24} strokeWidth={2.5} />
-            </div>
-            <div>
-              <span className="block text-base font-extrabold tracking-[0.08em] text-white sm:text-lg">
-                ALLIWA <span className="text-[#80D927]">MOBILINDO</span>
-              </span>
-              <span className="block text-[8px] font-medium tracking-[0.32em] text-gray-400">
-                YOUR TRUSTED CAR PARTNER
-              </span>
-            </div>
+            <img
+              src="/images/alliwa-logo-header.png"
+              alt="Alliwa Mobilindo"
+              className="h-9 w-auto object-contain sm:h-10"
+            />
           </Link>
 
           <div className="hidden items-center gap-9 text-xs font-medium tracking-widest text-gray-300 md:flex">
