@@ -213,13 +213,16 @@ export default function HomePage() {
       {/* NAVBAR */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#111111]/95 backdrop-blur-md">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-12">
-          <Link to="/" className="flex items-center gap-3">
-            <img
-              src="/images/alliwa-logo-header.png"
+          <Link to="/" className="flex items-center">
+            <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm">
+             <img
+              src="/Alliwa/alliwa-logo-header.png"
               alt="Alliwa Mobilindo"
-              className="h-9 w-auto object-contain sm:h-10"
-            />
+              className="h-7 w-auto object-contain sm:h-8"
+              />
+            </div>
           </Link>
+
 
           <div className="hidden items-center gap-9 text-xs font-medium tracking-widest text-gray-300 md:flex">
             <a href="#" className="text-[#80D927]">
