@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Gauge,
   Fuel,
   Settings,
@@ -31,6 +32,31 @@ const statusLabels = {
   Sold: "TERJUAL",
 };
 
+/* Accordion ringan berbasis state (tanpa library) */
+function Accordion({ title, defaultOpen = false, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border-t border-white/10">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between py-4 text-left text-base font-bold"
+      >
+        {title}
+        <ChevronDown
+          size={18}
+          className={`text-gray-400 transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      {open && <div className="pb-5">{children}</div>}
+    </div>
+  );
+}
+
 export default function VehicleDetail() {
   const { vehicles } = useVehicles();
   const { slug } = useParams();
@@ -44,12 +70,23 @@ export default function VehicleDetail() {
 
   const [activeImage, setActiveImage] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const touchStartX = useRef(null);
 
+  const goNext = () =>
+    setActiveImage((current) => (current + 1) % vehicleImages.length);
+  const goPrev = () =>
+    setActiveImage(
+      (current) => (current - 1 + vehicleImages.length) % vehicleImages.length
+    );
+
+  /* Selalu mulai dari paling atas saat membuka kendaraan */
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     setActiveImage(0);
     setIsLightboxOpen(false);
   }, [slug]);
 
+  /* Keyboard untuk lightbox */
   useEffect(() => {
     if (!isLightboxOpen) return undefined;
 
@@ -74,15 +111,31 @@ export default function VehicleDetail() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isLightboxOpen, vehicleImages.length]);
 
+  /* Kunci scroll halaman saat lightbox terbuka */
+  useEffect(() => {
+    if (!isLightboxOpen) return undefined;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, [isLightboxOpen]);
+
+  /* Muat foto berikutnya di belakang layar agar geser terasa instan */
+  useEffect(() => {
+    if (vehicleImages.length < 2) return;
+    const preload = new Image();
+    preload.src = vehicleImages[(activeImage + 1) % vehicleImages.length];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeImage, slug, vehicleImages.length]);
+
   if (!vehicle) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#111111] px-6 text-center text-white">
         <div className="mb-6 flex h-16 w-16 items-center justify-center bg-[#80D927] text-black">
           <CarFront size={34} />
         </div>
-        <h1 className="mb-3 text-3xl font-bold">
-          Kendaraan Tidak Ditemukan
-        </h1>
+        <h1 className="mb-3 text-3xl font-bold">Kendaraan Tidak Ditemukan</h1>
         <p className="mb-6 text-gray-400">
           Kendaraan yang Anda cari mungkin sudah tidak tersedia.
         </p>
@@ -96,12 +149,14 @@ export default function VehicleDetail() {
     );
   }
 
-  const formattedMileage =
+  const hasMileage =
     vehicle.mileage !== null &&
     vehicle.mileage !== undefined &&
-    vehicle.mileage !== ""
-      ? `${Number(vehicle.mileage).toLocaleString("id-ID")} km`
-      : "Belum tersedia";
+    vehicle.mileage !== "";
+
+  const formattedMileage = hasMileage
+    ? `${Number(vehicle.mileage).toLocaleString("id-ID")} km`
+    : "Belum tersedia";
 
   const whatsappNumber = "6281210481879";
   const whatsappMessage = encodeURIComponent(
@@ -121,34 +176,55 @@ export default function VehicleDetail() {
   ];
 
   const status = vehicle.status || "Available";
+  const isSold = status === "Sold";
+  const hasMultipleImages = vehicleImages.length > 1;
+
+  const handleCtaClick = (event) => {
+    if (isSold) {
+      event.preventDefault();
+    }
+  };
+
+  const handleTouchStart = (event) => {
+    touchStartX.current = event.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (event) => {
+    if (touchStartX.current === null || !hasMultipleImages) return;
+    const deltaX = event.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(deltaX) < 50) return;
+    if (deltaX < 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
+  };
 
   const showPreviousImage = (event) => {
     event.stopPropagation();
-    setActiveImage(
-      (current) =>
-        (current - 1 + vehicleImages.length) % vehicleImages.length
-    );
+    goPrev();
   };
 
   const showNextImage = (event) => {
     event.stopPropagation();
-    setActiveImage((current) => (current + 1) % vehicleImages.length);
+    goNext();
   };
 
   return (
     <main className="min-h-screen bg-[#111111] text-white">
       {/* NAVIGATION */}
-      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#111111]/95 px-6 py-5 backdrop-blur-md md:px-12">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-[#111111]/95 px-6 py-3 backdrop-blur-md md:px-12 md:py-5">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center bg-[#80D927] text-black">
-              <CarFront size={25} strokeWidth={2.5} />
+            <div className="flex h-9 w-9 items-center justify-center bg-[#80D927] text-black md:h-10 md:w-10">
+              <CarFront size={23} strokeWidth={2.5} />
             </div>
             <div>
-              <span className="block text-lg font-extrabold tracking-wider">
+              <span className="block text-base font-extrabold tracking-wider md:text-lg">
                 ALLIWA <span className="text-[#80D927]">MOBILINDO</span>
               </span>
-              <span className="block text-[8px] tracking-[0.3em] text-gray-400">
+              <span className="hidden text-[8px] tracking-[0.3em] text-gray-400 md:block">
                 YOUR TRUSTED CAR PARTNER
               </span>
             </div>
@@ -158,13 +234,13 @@ export default function VehicleDetail() {
             className="flex items-center gap-2 text-xs text-gray-300 transition hover:text-[#80D927] md:text-sm"
           >
             <ArrowLeft size={16} />
-            Kembali ke katalog
+            Katalog
           </Link>
         </div>
       </nav>
 
-      {/* BREADCRUMB */}
-      <div className="mx-auto max-w-7xl px-6 py-6 md:px-12">
+      {/* BREADCRUMB (disembunyikan di mobile agar foto langsung terlihat) */}
+      <div className="mx-auto hidden max-w-7xl px-6 py-6 md:block md:px-12">
         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
           <Link to="/" className="transition hover:text-[#80D927]">
             Beranda
@@ -179,27 +255,29 @@ export default function VehicleDetail() {
       </div>
 
       {/* VEHICLE CONTENT */}
-      <section className="mx-auto max-w-7xl px-6 pb-20 md:px-12">
-        <div className="grid gap-10 lg:grid-cols-2 lg:gap-16">
-          {/* IMAGE GALLERY */}
-          <div>
-            <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-[#1b1b1b]">
+      <section className="mx-auto max-w-7xl px-6 pb-28 md:px-12 lg:pb-20">
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_1fr] lg:gap-14">
+          {/* IMAGE GALLERY: penuh lebar di mobile */}
+          <div className="-mx-6 md:mx-0">
+            <div
+              className="relative aspect-[4/3] overflow-hidden bg-[#1b1b1b]"
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+            >
               {vehicleImages.length > 0 ? (
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
-                  className="group absolute inset-0 flex h-full w-full cursor-zoom-in items-center justify-center"
+                  className="absolute inset-0 h-full w-full cursor-zoom-in"
                   aria-label="Perbesar foto kendaraan"
                 >
                   <img
                     src={vehicleImages[activeImage] || vehicleImages[0]}
                     alt={`${vehicle.brand} ${vehicle.name}`}
-                    className="h-full w-full object-contain p-2 transition duration-300 group-hover:scale-[1.015]"
+                    fetchpriority="high"
+                    decoding="async"
+                    className="h-full w-full object-cover"
                   />
-                  <span className="absolute bottom-5 left-1/2 flex -translate-x-1/2 items-center gap-2 bg-black/75 px-3 py-2 text-[10px] tracking-wider text-white opacity-0 transition group-hover:opacity-100">
-                    <ZoomIn size={14} />
-                    KLIK UNTUK MEMPERBESAR
-                  </span>
                 </button>
               ) : (
                 <div className="flex h-full items-center justify-center text-gray-500">
@@ -208,19 +286,50 @@ export default function VehicleDetail() {
               )}
 
               <span
-                className={`pointer-events-none absolute left-5 top-5 px-4 py-2 text-[10px] font-bold tracking-widest ${
+                className={`pointer-events-none absolute left-4 top-4 px-3 py-1.5 text-[10px] font-bold tracking-widest ${
                   statusStyles[status] || statusStyles.Available
                 }`}
               >
                 {statusLabels[status] || status.toUpperCase()}
               </span>
-              <span className="pointer-events-none absolute bottom-5 right-5 bg-black/70 px-4 py-2 text-[10px] tracking-widest text-white">
+
+              {vehicleImages.length > 0 && (
+                <span className="pointer-events-none absolute right-4 top-4 flex h-8 w-8 items-center justify-center bg-black/60 text-white">
+                  <ZoomIn size={16} />
+                </span>
+              )}
+
+              {hasMultipleImages && (
+                <>
+                  <button
+                    type="button"
+                    onClick={showPreviousImage}
+                    aria-label="Foto sebelumnya"
+                    className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-black/60 text-white transition hover:bg-[#80D927] hover:text-black sm:flex"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNextImage}
+                    aria-label="Foto berikutnya"
+                    className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center bg-black/60 text-white transition hover:bg-[#80D927] hover:text-black sm:flex"
+                  >
+                    <ChevronRight size={22} />
+                  </button>
+                  <span className="pointer-events-none absolute bottom-4 right-4 bg-black/70 px-3 py-1.5 text-[11px] tracking-wider text-white">
+                    {activeImage + 1} / {vehicleImages.length}
+                  </span>
+                </>
+              )}
+
+              <span className="pointer-events-none absolute bottom-4 left-4 hidden bg-black/60 px-3 py-1.5 text-[10px] tracking-widest text-white sm:block">
                 ALLIWA MOBILINDO
               </span>
             </div>
 
-            {vehicleImages.length > 1 && (
-              <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+            {hasMultipleImages && (
+              <div className="mt-2 flex snap-x gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] md:px-0">
                 {vehicleImages.map((image, index) => (
                   <button
                     key={`${image}-${index}`}
@@ -228,118 +337,144 @@ export default function VehicleDetail() {
                     onClick={() => setActiveImage(index)}
                     aria-label={`Tampilkan foto ${index + 1}`}
                     aria-pressed={activeImage === index}
-                    className={`flex aspect-[4/3] items-center justify-center overflow-hidden border-2 bg-[#1b1b1b] p-1 transition ${
+                    className={`h-16 w-24 shrink-0 snap-start overflow-hidden border-2 bg-[#1b1b1b] transition sm:h-20 sm:w-28 ${
                       activeImage === index
                         ? "border-[#80D927]"
-                        : "border-transparent opacity-70 hover:opacity-100"
+                        : "border-transparent opacity-60 hover:opacity-100"
                     }`}
                   >
                     <img
                       src={image}
                       alt={`Foto ${index + 1} ${vehicle.name}`}
-                      className="h-full w-full object-contain"
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
                     />
                   </button>
                 ))}
               </div>
             )}
-
-            <div className="mt-8 border border-white/10 bg-[#171717] p-5">
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="text-[#80D927]" size={23} />
-                <div>
-                  <p className="text-sm font-semibold">Informasi Kendaraan</p>
-                  <p className="mt-1 text-xs leading-5 text-gray-400">
-                    Silakan hubungi Alliwa Mobilindo untuk konfirmasi kondisi,
-                    kelengkapan, dan ketersediaan unit.
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* VEHICLE INFORMATION */}
-          <div>
-            <p className="mb-3 text-sm font-bold uppercase tracking-[0.25em] text-[#80D927]">
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-[#80D927] md:text-sm">
               {vehicle.brand}
             </p>
-            <h1 className="mb-4 text-4xl font-bold leading-tight md:text-5xl">
+            <h1 className="mb-2 text-2xl font-bold leading-tight md:text-4xl">
               {vehicle.name}
             </h1>
-            <p className="mb-8 text-sm text-gray-400">
-              Tahun {vehicle.year}
-              {vehicle.mileage !== null &&
-                vehicle.mileage !== undefined &&
-                vehicle.mileage !== "" && ` · ${formattedMileage}`}
-              {vehicle.color && ` · ${vehicle.color}`}
-            </p>
+            {vehicle.color && (
+              <p className="mb-4 text-sm text-gray-400">
+                Warna {vehicle.color}
+              </p>
+            )}
 
             {/* PRICE */}
-            <div className="mb-8 border-y border-white/10 py-7">
-              <p className="mb-2 text-xs uppercase tracking-widest text-gray-500">
+            <div className="mb-5 mt-4 border-y border-white/10 py-5">
+              <p className="mb-1 text-xs uppercase tracking-widest text-gray-500">
                 Harga kendaraan
               </p>
-              <p className="text-3xl font-extrabold text-[#80D927]">
+              <p className="text-3xl font-extrabold text-[#80D927] md:text-4xl">
                 {formatRupiah(vehicle.price)}
               </p>
             </div>
 
-            {/* SPECIFICATIONS */}
-            <h2 className="mb-5 text-lg font-bold">Spesifikasi Kendaraan</h2>
-            <div className="mb-9 grid grid-cols-2 gap-5">
+            {/* KEY SPECIFICATIONS */}
+            <div className="mb-6 grid grid-cols-2 gap-3">
               {specifications.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center bg-white/5 text-[#80D927]">
-                      <Icon size={19} />
-                    </div>
+                  <div
+                    key={item.label}
+                    className="flex items-center gap-3 bg-white/5 px-3 py-3"
+                  >
+                    <Icon size={18} className="shrink-0 text-[#80D927]" />
                     <div className="min-w-0">
-                      <p className="text-xs text-gray-500">{item.label}</p>
-                      <p className="text-sm font-semibold">{item.value}</p>
+                      <p className="text-[11px] text-gray-500">{item.label}</p>
+                      <p className="truncate text-sm font-semibold">
+                        {item.value}
+                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* DESCRIPTION */}
-            <div className="mb-9">
-              <h2 className="mb-3 text-lg font-bold">Deskripsi Kendaraan</h2>
-              <p className="whitespace-pre-line text-sm leading-7 text-gray-400">
-                {vehicle.description ||
-                  "Informasi deskripsi kendaraan belum tersedia. Silakan hubungi Alliwa Mobilindo untuk mendapatkan informasi lebih lanjut."}
-              </p>
-            </div>
-
-            {/* WHATSAPP CTA */}
+            {/* WHATSAPP CTA (desktop; di mobile memakai bar bawah) */}
             <a
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex w-full items-center justify-center gap-3 py-4 font-bold transition ${
-                status === "Sold"
+              onClick={handleCtaClick}
+              className={`mb-6 hidden w-full items-center justify-center gap-3 py-4 font-bold transition lg:flex ${
+                isSold
                   ? "cursor-not-allowed bg-gray-600 text-gray-300"
                   : "bg-[#80D927] text-black hover:bg-white"
               }`}
-              onClick={(event) => {
-                if (status === "Sold") {
-                  event.preventDefault();
-                }
-              }}
             >
               <MessageCircle size={20} />
-              {status === "Sold"
-                ? "UNIT SUDAH TERJUAL"
-                : "TANYAKAN MELALUI WHATSAPP"}
+              {isSold ? "UNIT SUDAH TERJUAL" : "TANYAKAN MELALUI WHATSAPP"}
             </a>
-            <p className="mt-4 text-center text-xs leading-6 text-gray-500">
+
+            {/* DETAILS (accordion) */}
+            <div className="border-b border-white/10">
+              <Accordion title="Deskripsi kendaraan" defaultOpen>
+                <p className="whitespace-pre-line text-sm leading-7 text-gray-400">
+                  {vehicle.description ||
+                    "Informasi deskripsi kendaraan belum tersedia. Silakan hubungi Alliwa Mobilindo untuk mendapatkan informasi lebih lanjut."}
+                </p>
+              </Accordion>
+              <Accordion title="Informasi penting">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck
+                    className="mt-0.5 shrink-0 text-[#80D927]"
+                    size={20}
+                  />
+                  <p className="text-xs leading-6 text-gray-400">
+                    Silakan hubungi Alliwa Mobilindo untuk konfirmasi kondisi,
+                    kelengkapan, dan ketersediaan unit.
+                  </p>
+                </div>
+              </Accordion>
+            </div>
+
+            <p className="mt-5 hidden text-center text-xs leading-6 text-gray-500 lg:block">
               <CheckCircle size={14} className="mr-1 inline text-[#80D927]" />
               Konsultasikan kendaraan ini langsung dengan tim Alliwa Mobilindo.
             </p>
           </div>
         </div>
       </section>
+
+      {/* STICKY BAR (mobile): harga + tombol WhatsApp selalu terlihat */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-4 border-t border-white/10 bg-[#111111]/95 px-4 pt-3 backdrop-blur-md lg:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-widest text-gray-500">
+            Harga
+          </p>
+          <p className="truncate text-lg font-extrabold text-[#80D927]">
+            {formatRupiah(vehicle.price)}
+          </p>
+        </div>
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleCtaClick}
+          className={`flex shrink-0 items-center gap-2 px-5 py-3 text-sm font-bold ${
+            isSold
+              ? "cursor-not-allowed bg-gray-600 text-gray-300"
+              : "bg-[#80D927] text-black"
+          }`}
+        >
+          <MessageCircle size={18} />
+          {isSold ? "Terjual" : "WhatsApp"}
+        </a>
+      </div>
 
       {/* FULL-SIZE IMAGE VIEWER / LIGHTBOX */}
       {isLightboxOpen && vehicleImages.length > 0 && (
@@ -349,6 +484,8 @@ export default function VehicleDetail() {
           aria-label="Foto kendaraan ukuran penuh"
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4"
           onClick={() => setIsLightboxOpen(false)}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
           <button
             type="button"
@@ -359,7 +496,7 @@ export default function VehicleDetail() {
             <X size={23} />
           </button>
 
-          {vehicleImages.length > 1 && (
+          {hasMultipleImages && (
             <button
               type="button"
               aria-label="Foto sebelumnya"
@@ -374,10 +511,11 @@ export default function VehicleDetail() {
             src={vehicleImages[activeImage] || vehicleImages[0]}
             alt={`${vehicle.brand} ${vehicle.name} - foto ${activeImage + 1}`}
             onClick={(event) => event.stopPropagation()}
+            decoding="async"
             className="max-h-[88vh] max-w-[88vw] select-none object-contain"
           />
 
-          {vehicleImages.length > 1 && (
+          {hasMultipleImages && (
             <button
               type="button"
               aria-label="Foto berikutnya"
@@ -395,7 +533,7 @@ export default function VehicleDetail() {
       )}
 
       {/* FOOTER */}
-      <footer className="border-t border-white/10 bg-[#171717] px-6 py-8 md:px-12">
+      <footer className="border-t border-white/10 bg-[#171717] px-6 py-8 pb-24 md:px-12 lg:pb-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <p className="text-sm font-bold tracking-wider">
             ALLIWA <span className="text-[#80D927]">MOBILINDO</span>
