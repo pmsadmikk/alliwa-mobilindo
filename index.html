@@ -8,6 +8,11 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Alliwa Mobilindo — Your Trusted Car Partner</title>
+    <script>
+      function showErr(m){document.body.innerHTML='<pre style="color:#fff;padding:16px;white-space:pre-wrap">'+m+'</pre>'}
+      window.addEventListener("error",function(e){showErr(e.message)});
+      window.addEventListener("unhandledrejection",function(e){showErr(String(e.reason))});
+    </script>
   </head>
   <body>
     <div id="root"></div>
