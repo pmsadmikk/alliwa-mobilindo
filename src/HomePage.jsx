@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useVehicles } from "./context/VehicleContext";
 import {
   CarFront,
-  Search,
+  Seaaarch,
   Menu,
   X,
   ArrowRight,
