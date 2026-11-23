@@ -216,7 +216,7 @@ export default function HomePage() {
           <Link to="/" className="flex items-center">
             <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm">
               <img
-                src="/Images/alliwa-logo-header.png"
+                public="/images/alliwa-logo-header.png"
                 alt="Alliwa Mobilindo"
                 className="h-7 w-auto object-contain sm:h-8"
               />
