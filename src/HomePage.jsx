@@ -215,14 +215,13 @@ export default function HomePage() {
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 lg:px-12">
           <Link to="/" className="flex items-center">
             <div className="rounded-xl bg-white px-3 py-1.5 shadow-sm">
-             <img
-              src="/Alliwa/alliwa-logo-header.png"
-              alt="Alliwa Mobilindo"
-              className="h-7 w-auto object-contain sm:h-8"
+              <img
+                src="/images/alliwa-logo-header.png"
+                alt="Alliwa Mobilindo"
+                className="h-7 w-auto object-contain sm:h-8"
               />
             </div>
           </Link>
-
 
           <div className="hidden items-center gap-9 text-xs font-medium tracking-widest text-gray-300 md:flex">
             <a href="#" className="text-[#80D927]">
