@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+limport { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -268,15 +268,24 @@ export default function VehicleDetail() {
                 <button
                   type="button"
                   onClick={() => setIsLightboxOpen(true)}
-                  className="absolute inset-0 h-full w-full cursor-zoom-in"
+                  className="absolute inset-0 h-full w-full cursor-zoom-in overflow-hidden"
                   aria-label="Perbesar foto kendaraan"
                 >
+                  {/* Latar: foto yang sama diburamkan, mengisi ruang kosong */}
+                  <span
+                    aria-hidden="true"
+                    className="absolute inset-0 scale-110 bg-cover bg-center opacity-50 blur-xl"
+                    style={{
+                      backgroundImage: `url("${vehicleImages[activeImage] || vehicleImages[0]}")`,
+                    }}
+                  />
+                  {/* Foto utama: tampil utuh tanpa terpotong */}
                   <img
                     src={vehicleImages[activeImage] || vehicleImages[0]}
                     alt={`${vehicle.brand} ${vehicle.name}`}
                     fetchpriority="high"
                     decoding="async"
-                    className="h-full w-full object-cover"
+                    className="relative h-full w-full object-contain"
                   />
                 </button>
               ) : (
